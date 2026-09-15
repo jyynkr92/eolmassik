@@ -8,6 +8,4 @@ const RootLayout = () => {
   )
 }
 
-RootLayout.displayName = 'RootLayout'
-
 export const Route = createRootRoute({ component: RootLayout })

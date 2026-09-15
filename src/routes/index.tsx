@@ -9,6 +9,4 @@ const HomePage = () => {
   )
 }
 
-HomePage.displayName = 'HomePage'
-
 export const Route = createFileRoute('/')({ component: HomePage })

@@ -368,7 +368,9 @@ src/
 
 - 컴포넌트는 화살표 함수 표현식으로 선언한다.
 - Props 타입은 `interface` 로 정의한다.
-- 동적 export, HOC 사용 시 `displayName` 을 명시한다.
+- `displayName` 은 **이름 추론이 깨질 때만** 명시한다. `memo()` / `forwardRef()` 로 감싸거나
+  팩토리로 동적 생성한 경우다. 평범하게 `const` 에 할당한 컴포넌트는 변수명에서 이름이
+  추론되므로 붙이지 않는다.
 - 300줄 이상이거나 복잡한 컴포넌트는 component + hook + types + styles 로 분리한다.
 - 최상위 return 요소는 의미 있는 semantic 태그를 사용한다. (`<section>`, `<main>`, `<dialog>`)
 
@@ -386,9 +388,18 @@ const SubmitButton = ({ label, onClick }: Props) => {
   );
 };
 
-SubmitButton.displayName = 'SubmitButton';
-
 export default SubmitButton;
+```
+
+`displayName` 이 필요한 경우는 이렇게 이름이 사라질 때다.
+
+```tsx
+// memo() 로 감싸면 DevTools 에 Anonymous 로 뜬다
+const ItemRow = memo(({ item }: Props) => {
+  return <li>{item.name}</li>;
+});
+
+ItemRow.displayName = 'ItemRow';
 ```
 
 ---

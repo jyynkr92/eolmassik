@@ -16,6 +16,4 @@ const SharedPage = () => {
   )
 }
 
-SharedPage.displayName = 'SharedPage'
-
 export const Route = createFileRoute('/s')({ component: SharedPage })
