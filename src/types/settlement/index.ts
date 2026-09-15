@@ -72,7 +72,7 @@ export type Settlement = {
   options: Options
   /**
    * 기본 결제자. 항목마다 매번 고르게 하지 않고 이 사람을 자동 적용한 뒤
-   * 예외인 항목만 payerId 를 바꾼다. 기획설계 10 — 열린 질문 1
+   * 예외인 항목만 payerId 를 바꾼다. 기획설계 9 — 결정 기록 7
    */
   defaultPayerId: string | null
 }
