@@ -5,7 +5,7 @@
 
 ## Tech Stack
 
-- Vite 8, React 19, TypeScript 5.9 (strict)
+- Vite 8, React 19, TypeScript 7 (strict)
 - TanStack Router (SPA, 파일 기반 라우팅 + autoCodeSplitting)
 - Zustand — 클라이언트 상태
 - Tailwind CSS v4 (`tailwindcss ^4.3`)
