@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 import { DEFAULT_OPTIONS } from '@/constants/settlement'
-import type { Settlement } from '@/types/settlement'
+import type { Options, Settlement } from '@/types/settlement'
 
 /**
  * 단일 Settlement 객체만 다루므로 전역 스토어 하나로 충분하다.
@@ -25,6 +25,20 @@ const createEmptySettlement = (): Settlement => ({
   defaultPayerId: null,
 })
 
+/**
+ * v1 에는 `options.fullChargeSplit` 이 없다. 빠진 채로 복원하면 `fullChargeSplit === 'even'`
+ * 비교가 false 로 떨어져 headcount 비례 분기를 타므로, 기본값을 채워 넣는다.
+ */
+const migrateSettlement = (persisted: unknown): SettlementState | undefined => {
+  if (typeof persisted !== 'object' || persisted === null) return undefined
+
+  const { settlement } = persisted as { settlement?: Settlement }
+  if (!settlement) return undefined
+
+  const options: Options = { ...DEFAULT_OPTIONS, ...settlement.options }
+  return { ...(persisted as SettlementState), settlement: { ...settlement, options } }
+}
+
 export const useSettlementStore = create<SettlementState>()(
   persist(
     (set) => ({
@@ -33,7 +47,12 @@ export const useSettlementStore = create<SettlementState>()(
     }),
     {
       name: 'eolmassik:draft',
-      version: 1,
+      // Options 에 fullChargeSplit 이 추가되면서 스키마가 바뀌었다.
+      version: 2,
+      migrate: (persisted, version) => {
+        if (version >= 2) return persisted as SettlementState
+        return migrateSettlement(persisted)
+      },
     },
   ),
 )
