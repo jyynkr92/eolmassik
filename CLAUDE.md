@@ -248,7 +248,8 @@ type prefix: `feat/`, `fix/`, `refactor/`, `hotfix/`, `perf/`, `chore/`, `docs/`
 - 불필요한 리렌더링을 방지한다.
 - early return 을 사용한다.
 - `any` 타입 사용 불가. strict typing 을 사용한다.
-- 사용자-facing 텍스트는 한국어로 컴포넌트에 직접 작성한다. (i18n 미도입)
+- 사용자-facing 텍스트는 한국어로 `constants/text/` 에 모아두고 컴포넌트에서 가져다 쓴다.
+  i18n 은 도입하지 않지만, 문구가 화면 곳곳에 흩어지면 같은 말이 화면마다 달라진다.
 
 ### 함수 작성 규칙
 
@@ -325,6 +326,7 @@ boolean 변수는 예외: `is`/`has`/`can`/`should` 접두어가 이미 긍정�
 | 도메인 유틸 | `lib/feature/` | `lib/calc/calculate-item.ts` |
 | 타입 | `types/feature/` | `types/settlement/index.ts` |
 | 상수 | `constants/` | `constants/settlement.ts` |
+| 텍스트 | `constants/text/` | `constants/text/home.ts` |
 | 스타일 | `styles/` | `styles/globals.css` |
 
 현재 features 구성은 기획설계 5장의 화면 흐름을 따른다.
@@ -342,6 +344,7 @@ src/
 ├─ routes/            화면 (/ 편집, /s 읽기 전용)
 ├─ store/             Settlement 전역 상태
 ├─ constants/
+│  └─ text/           화면별 사용자-facing 문구
 ├─ types/
 └─ styles/
 ```
@@ -538,6 +541,20 @@ const amount = item.amount || 0;
 ### 상수 / 타입 정의
 
 하드코딩을 지양하고 `constants/`, `types/` 에 정의하여 사용한다.
+
+사용자-facing 텍스트는 `constants/text/` 아래 **화면 단위로 파일을 나눈다.**
+파일명은 화면 이름의 kebab-case 이고, 상수명은 `SCREEN_TEXT` 형태의 `as const` 객체다.
+두 화면 이상에서 쓰는 문구만 `common.ts` 에 둔다.
+
+```ts
+// constants/text/share.ts — [5] 공유받은 결과. 기획설계 5.6
+export const SHARE_TEXT = {
+  title: '공유받은 정산',
+  description: '읽기 전용 결과 화면',
+} as const;
+```
+
+접근성 레이블(`aria-label`)과 에러 메시지도 같은 규칙을 따른다.
 
 ### 주석
 

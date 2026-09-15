@@ -1,5 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router'
 
+import { SHARE_TEXT } from '@/constants/text/share'
+
 /**
  * 공유받은 정산 결과 (읽기 전용). 기획설계 5.6
  *
@@ -10,8 +12,8 @@ import { createFileRoute } from '@tanstack/react-router'
 const SharedPage = () => {
   return (
     <main className="p-5">
-      <h1 className="text-on-surface-base text-2xl font-bold">공유받은 정산</h1>
-      <p className="text-on-surface-muted mt-1 text-sm">읽기 전용 결과 화면</p>
+      <h1 className="text-on-surface-base text-2xl font-bold">{SHARE_TEXT.title}</h1>
+      <p className="text-on-surface-muted mt-1 text-sm">{SHARE_TEXT.description}</p>
     </main>
   )
 }
