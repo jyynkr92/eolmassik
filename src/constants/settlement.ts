@@ -7,6 +7,7 @@ import type { Options } from '@/types/settlement'
 export const DEFAULT_OPTIONS: Options = {
   rounding: 'none',
   roundingAbsorber: 'payer',
+  fullChargeSplit: 'even',
 }
 
 /**

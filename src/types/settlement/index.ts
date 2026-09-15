@@ -57,9 +57,16 @@ export type Rounding = 'none' | 'ceil10' | 'ceil100'
 /** 나눠떨어지지 않고 남은 잔차를 누가 흡수할지. */
 export type RoundingAbsorber = 'payer' | 'split'
 
+/**
+ * `full` 부담자가 여러 명일 때 나누는 방식.
+ * "이건 우리가 낼게" 를 두 팀이 같이 선언한 경우다. 기본은 headcount 를 무시한 n등분이다.
+ */
+export type FullChargeSplit = 'even' | 'headcount'
+
 export type Options = {
   rounding: Rounding
   roundingAbsorber: RoundingAbsorber
+  fullChargeSplit: FullChargeSplit
 }
 
 export type Settlement = {
