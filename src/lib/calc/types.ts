@@ -32,6 +32,12 @@ export type Transfer = {
   amount: number
 }
 
+export type RoundedTransfers = {
+  transfers: Transfer[]
+  /** 올림 때문에 더 걷힌 금액. 받는 사람(보통 결제자) 이득이다. 기획설계 4.3 */
+  excess: number
+}
+
 export type SettlementResult = {
   itemResults: ItemResult[]
   /** `participants` 배열 순서를 따른다. */

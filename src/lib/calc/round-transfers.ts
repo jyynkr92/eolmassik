@@ -1,6 +1,6 @@
 import type { Rounding } from '@/types/settlement'
 
-import type { Transfer } from './types'
+import type { RoundedTransfers, Transfer } from './types'
 
 /** 반올림 단위. `none` 은 1원 단위라 올림이 아무것도 바꾸지 않는다. 기획설계 4.3 */
 const ROUNDING_UNIT: Record<Rounding, number> = {
@@ -10,12 +10,6 @@ const ROUNDING_UNIT: Record<Rounding, number> = {
 }
 
 const roundUp = (value: number, unit: number) => Math.ceil(value / unit) * unit
-
-export type RoundedTransfers = {
-  transfers: Transfer[]
-  /** 올림 때문에 더 걷힌 금액. 받는 사람(보통 결제자) 이득이다. 기획설계 4.3 */
-  excess: number
-}
 
 /**
  * 송금 금액을 올림한다. 기획설계 4.3
