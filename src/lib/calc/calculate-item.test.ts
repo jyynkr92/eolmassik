@@ -2,16 +2,11 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 
 import { DEFAULT_OPTIONS } from '@/constants/settlement';
-import type { ExtraCharge, Item, Options, Participant } from '@/types/settlement';
+import type { ExtraCharge, Item, Options } from '@/types/settlement';
 
 import { arbitraryItem, arbitraryOptions, arbitraryParticipants } from './arbitraries.test-helper';
 import { calculateItem } from './calculate-item';
-
-const participant = (id: string, headcount = 1): Participant => ({
-  id,
-  name: id,
-  headcount,
-});
+import { participant } from './fixtures.test-helper';
 
 const item = (overrides: Partial<Item> = {}): Item => ({
   id: 'i0',

@@ -6,6 +6,8 @@ import type { Settlement } from '@/types/settlement';
 
 import { arbitrarySettlement } from './arbitraries.test-helper';
 import { calculateSettlement } from './calculate-settlement';
+import { participant } from './fixtures.test-helper';
+import { applyTransfers, sumSentById } from './transfers.test-helper';
 
 const sum = (values: number[]) => values.reduce((acc, value) => acc + value, 0);
 
@@ -24,10 +26,7 @@ describe('calculateSettlement', () => {
   it('결제자와 부담자를 분리해 순액과 송금을 낸다', () => {
     const result = calculateSettlement(
       settlement({
-        participants: [
-          { id: 'p0', name: '은정', headcount: 1 },
-          { id: 'p1', name: '민수', headcount: 1 },
-        ],
+        participants: [participant('p0'), participant('p1')],
         items: [
           {
             id: 'i0',
@@ -60,11 +59,7 @@ describe('calculateSettlement', () => {
   it('올림이 항목 수만큼 누적되지 않는다', () => {
     // 10,000원 항목 3개를 3명이 나누면 정확히 1인 10,000원이다.
     // 항목 단위로 올리면 1인 10,200원이 되어 항목 수만큼 손해가 쌓인다. 기획설계 4.3
-    const participants = [
-      { id: 'p0', name: 'p0', headcount: 1 },
-      { id: 'p1', name: 'p1', headcount: 1 },
-      { id: 'p2', name: 'p2', headcount: 1 },
-    ];
+    const participants = [participant('p0'), participant('p1'), participant('p2')];
     const result = calculateSettlement(
       settlement({
         participants,
@@ -92,7 +87,7 @@ describe('calculateSettlement', () => {
   it('참여자 목록에 없는 결제자는 집계하지 않는다', () => {
     const result = calculateSettlement(
       settlement({
-        participants: [{ id: 'p0', name: '은정', headcount: 1 }],
+        participants: [participant('p0')],
         items: [
           {
             id: 'i0',
@@ -111,9 +106,7 @@ describe('calculateSettlement', () => {
   });
 
   it('항목이 없으면 전원 순액이 0이다', () => {
-    const result = calculateSettlement(
-      settlement({ participants: [{ id: 'p0', name: '은정', headcount: 1 }] }),
-    );
+    const result = calculateSettlement(settlement({ participants: [participant('p0')] }));
 
     expect(result.totalAmount).toBe(0);
     expect(result.balances).toEqual([{ participantId: 'p0', paid: 0, owed: 0, net: 0 }]);
@@ -137,16 +130,7 @@ describe('calculateSettlement', () => {
       fc.assert(
         fc.property(arbitrarySettlement(), (generated) => {
           const result = calculateSettlement(generated);
-          const settled = new Map(
-            result.balances.map((balance) => [balance.participantId, balance.net]),
-          );
-
-          for (const transfer of result.transfers) {
-            settled.set(transfer.fromId, (settled.get(transfer.fromId) ?? 0) + transfer.amount);
-            settled.set(transfer.toId, (settled.get(transfer.toId) ?? 0) - transfer.amount);
-          }
-
-          const remaining = [...settled.values()];
+          const remaining = [...applyTransfers(result.balances, result.transfers).values()];
           expect(result.transfers.length).toBeLessThanOrEqual(generated.participants.length - 1);
           // 주고받은 총액은 언제나 맞아떨어진다.
           expect(sum(remaining)).toBe(0);
@@ -161,13 +145,7 @@ describe('calculateSettlement', () => {
         fc.property(arbitrarySettlement(), (generated) => {
           const result = calculateSettlement(generated);
           const unit = ROUNDING_UNIT[generated.options.rounding];
-          const sentById = new Map<string, number>();
-
-          for (const transfer of result.transfers) {
-            sentById.set(transfer.fromId, (sentById.get(transfer.fromId) ?? 0) + transfer.amount);
-          }
-
-          for (const [id, sent] of sentById) {
+          for (const [id, sent] of sumSentById(result.transfers)) {
             const owedNet = -(result.balances.find((b) => b.participantId === id)?.net ?? 0);
             expect(sent - owedNet).toBeGreaterThanOrEqual(0);
             expect(sent - owedNet).toBeLessThan(unit);

@@ -2,6 +2,7 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 
 import { simplifyDebts } from './simplify-debts';
+import { applyTransfers } from './transfers.test-helper';
 import type { ParticipantBalance } from './types';
 
 const balance = (participantId: string, net: number): ParticipantBalance => ({
@@ -69,11 +70,7 @@ describe('simplifyDebts', () => {
     it('송금을 모두 반영하면 전원 순액이 0이 된다', () => {
       fc.assert(
         fc.property(arbitraryBalancedNets(), (balances) => {
-          const settled = new Map(balances.map((b) => [b.participantId, b.net]));
-          for (const transfer of simplifyDebts(balances)) {
-            settled.set(transfer.fromId, (settled.get(transfer.fromId) ?? 0) + transfer.amount);
-            settled.set(transfer.toId, (settled.get(transfer.toId) ?? 0) - transfer.amount);
-          }
+          const settled = applyTransfers(balances, simplifyDebts(balances));
 
           for (const net of settled.values()) expect(net).toBe(0);
         }),

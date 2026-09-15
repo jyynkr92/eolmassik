@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { ROUNDING_UNIT } from '@/constants/settlement';
 
 import { roundTransfers } from './round-transfers';
+import { sumSentById } from './transfers.test-helper';
 import type { Transfer } from './types';
 
 const transfer = (fromId: string, toId: string, amount: number): Transfer => ({
@@ -78,20 +79,12 @@ describe('roundTransfers', () => {
     const arbitraryRounding = () =>
       fc.constantFrom('none' as const, 'ceil10' as const, 'ceil100' as const);
 
-    const sentById = (transfers: Transfer[]) => {
-      const sent = new Map<string, number>();
-      for (const item of transfers) {
-        sent.set(item.fromId, (sent.get(item.fromId) ?? 0) + item.amount);
-      }
-      return sent;
-    };
-
     it('보내는 사람마다 총액이 단위에 맞춰 올라가고, 한 단위 미만만 늘어난다', () => {
       fc.assert(
         fc.property(arbitraryTransfers(), arbitraryRounding(), (transfers, rounding) => {
           const unit = ROUNDING_UNIT[rounding];
-          const before = sentById(transfers);
-          const after = sentById(roundTransfers(transfers, rounding).transfers);
+          const before = sumSentById(transfers);
+          const after = sumSentById(roundTransfers(transfers, rounding).transfers);
 
           for (const [id, sent] of after) {
             const original = before.get(id) ?? 0;
