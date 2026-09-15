@@ -38,11 +38,32 @@ const arbitraryExtraCharge = (
     value: fc.integer({ min: 0, max: Math.max(1, amount) }),
   });
 
-export const arbitraryItem = (participantIds: string[]): fc.Arbitrary<Item> =>
+type ItemConstraints = {
+  /**
+   * 참여자를 지운 뒤 그 사람이 결제자인 항목이 남는 경로를 낮은 빈도로 섞는다.
+   * `calculateItem` 은 결제자가 유효하다고 전제하므로 `calculateSettlement` 쪽에서만 켠다.
+   */
+  withMissingPayer?: boolean;
+};
+
+const arbitraryPayerId = (participantIds: string[], { withMissingPayer }: ItemConstraints) => {
+  const known = fc.constantFrom(...participantIds);
+  if (!withMissingPayer) return known;
+
+  return fc.oneof(
+    { arbitrary: known, weight: 9 },
+    { arbitrary: fc.constant('삭제된참여자'), weight: 1 },
+  );
+};
+
+export const arbitraryItem = (
+  participantIds: string[],
+  constraints: ItemConstraints = {},
+): fc.Arbitrary<Item> =>
   fc.integer({ min: 0, max: 200_000 }).chain((amount) =>
     fc
       .record({
-        payerId: fc.constantFrom(...participantIds),
+        payerId: arbitraryPayerId(participantIds, constraints),
         participantIds: fc.shuffledSubarray(participantIds),
         extraCharges: fc.array(arbitraryExtraCharge(participantIds, amount), { maxLength: 3 }),
       })
@@ -54,7 +75,9 @@ export const arbitrarySettlement = (): fc.Arbitrary<Settlement> =>
     const participantIds = participants.map((participant) => participant.id);
     return fc
       .record({
-        items: fc.array(arbitraryItem(participantIds), { maxLength: 5 }),
+        items: fc.array(arbitraryItem(participantIds, { withMissingPayer: true }), {
+          maxLength: 5,
+        }),
         options: arbitraryOptions(),
       })
       .map(({ items, options }) => ({

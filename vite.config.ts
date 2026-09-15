@@ -18,6 +18,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['src/**/*.test.ts'],
+    // .test.tsx 를 빠뜨리면 컴포넌트 테스트가 CI 에서 조용히 건너뛰어진다.
+    include: ['src/**/*.test.{ts,tsx}'],
   },
 });

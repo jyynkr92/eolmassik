@@ -49,6 +49,7 @@ describe('calculateSettlement', () => {
     );
 
     expect(result.totalAmount).toBe(40_000);
+    expect(result.invalidItemIds).toEqual([]);
     expect(result.balances).toEqual([
       { participantId: 'p0', paid: 30_000, owed: 20_000, net: 10_000 },
       { participantId: 'p1', paid: 10_000, owed: 20_000, net: -10_000 },
@@ -84,25 +85,40 @@ describe('calculateSettlement', () => {
     expect(result.roundingExcess).toBe(2);
   });
 
-  it('참여자 목록에 없는 결제자는 집계하지 않는다', () => {
+  it('결제자가 참여자 목록에 없는 항목은 정산에서 빼고 id 로 알린다', () => {
+    // 결제액을 낼 사람이 없는데 부담만 시키면 보낼 곳 없는 빚이 생긴다.
     const result = calculateSettlement(
       settlement({
-        participants: [participant('p0')],
+        participants: [participant('p0'), participant('p1')],
         items: [
           {
             id: 'i0',
             name: '고기',
             amount: 30_000,
             payerId: '유령',
-            participantIds: ['p0'],
+            participantIds: ['p0', 'p1'],
+            extraCharges: [],
+          },
+          {
+            id: 'i1',
+            name: '음료',
+            amount: 10_000,
+            payerId: 'p0',
+            participantIds: ['p0', 'p1'],
             extraCharges: [],
           },
         ],
       }),
     );
 
-    expect(result.balances).toEqual([{ participantId: 'p0', paid: 0, owed: 30_000, net: -30_000 }]);
-    expect(result.transfers).toEqual([]);
+    expect(result.invalidItemIds).toEqual(['i0']);
+    expect(result.itemResults.map((item) => item.itemId)).toEqual(['i1']);
+    expect(result.totalAmount).toBe(10_000);
+    expect(result.balances).toEqual([
+      { participantId: 'p0', paid: 10_000, owed: 5_000, net: 5_000 },
+      { participantId: 'p1', paid: 0, owed: 5_000, net: -5_000 },
+    ]);
+    expect(result.transfers).toEqual([{ fromId: 'p1', toId: 'p0', amount: 5_000 }]);
   });
 
   it('항목이 없으면 전원 순액이 0이다', () => {
@@ -114,6 +130,18 @@ describe('calculateSettlement', () => {
   });
 
   describe('property', () => {
+    it('제외된 항목과 반영된 항목을 합치면 원래 항목 수와 같다', () => {
+      fc.assert(
+        fc.property(arbitrarySettlement(), (generated) => {
+          const result = calculateSettlement(generated);
+
+          expect(result.itemResults.length + result.invalidItemIds.length).toBe(
+            generated.items.length,
+          );
+        }),
+      );
+    });
+
     it('전체 부담액의 합 == 전체 결제액의 합 == 총액', () => {
       fc.assert(
         fc.property(arbitrarySettlement(), (generated) => {

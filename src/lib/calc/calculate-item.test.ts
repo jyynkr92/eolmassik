@@ -237,6 +237,67 @@ describe('calculateItem', () => {
       expect(amountOf(result, 'p1')).toBe(3_000);
     });
 
+    it('split 흡수자여도 선언한 금액을 넘겨 청구하지 않는다', () => {
+      // 1,002원은 p1~p3 이 나누고 p0 은 선언한 1원만 낸다.
+      const participants = [
+        participant('p0'),
+        participant('p1'),
+        participant('p2'),
+        participant('p3'),
+      ];
+      const target = item({
+        amount: 1_002,
+        payerId: 'p1',
+        participantIds: ['p1', 'p2', 'p3'],
+        extraCharges: [{ participantId: 'p0', type: 'amount', value: 1 }],
+      });
+
+      const result = calculateItem(target, participants, options({ roundingAbsorber: 'split' }));
+
+      expect(result.shares.map((share) => share.amount)).toEqual([1, 334, 334, 333]);
+      expect(result.total).toBe(1_002);
+    });
+
+    it('결제자가 부담자가 아니면 N빵 대상 중 첫 사람이 잔차를 흡수한다', () => {
+      const participants = [
+        participant('p0'),
+        participant('p2'),
+        participant('p3'),
+        participant('pX'),
+      ];
+      const target = item({
+        amount: 1_000,
+        payerId: 'pX',
+        participantIds: ['p2', 'p3'],
+        extraCharges: [{ participantId: 'p0', type: 'amount', value: 1 }],
+      });
+
+      const result = calculateItem(target, participants, DEFAULT_OPTIONS);
+
+      expect(amountOf(result, 'p0')).toBe(1);
+      expect(result.shares.map((share) => share.amount)).toEqual([1, 500, 499]);
+    });
+
+    it('추가 부담을 축소할 때 잔차는 선언한 사람끼리만 나눈다', () => {
+      // 3원짜리 항목을 p1, p2 가 5원씩 가져가겠다고 했다. p0 은 아무 말도 안 했다.
+      const participants = [participant('p0'), participant('p1'), participant('p2')];
+      const target = item({
+        amount: 3,
+        payerId: 'p1',
+        participantIds: ['p0', 'p1', 'p2'],
+        extraCharges: [
+          { participantId: 'p1', type: 'amount', value: 5 },
+          { participantId: 'p2', type: 'amount', value: 5 },
+        ],
+      });
+
+      const result = calculateItem(target, participants, DEFAULT_OPTIONS);
+
+      expect(amountOf(result, 'p0')).toBe(0);
+      expect(result.shares.map((share) => share.amount)).toEqual([0, 2, 1]);
+      expect(result.total).toBe(3);
+    });
+
     it('부담자가 없으면 결제자가 전액을 진다', () => {
       const participants = [participant('p0'), participant('p1')];
       const target = item({ amount: 10_000, payerId: 'p1', participantIds: [] });

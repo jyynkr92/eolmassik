@@ -25,26 +25,44 @@ const splitByWeight = (total: number, weights: number[]): WeightedSplit => {
   return { shares, residual: total - sum(shares) };
 };
 
-/** 잔차를 앞사람부터 1원씩 돌린다. */
-const spreadResidual = (shares: number[], residual: number) => {
-  if (shares.length === 0 || residual === 0) return shares;
+/** 값이 0보다 큰 자리의 인덱스. 잔차를 나눠 가질 자격이 있는 사람들이다. */
+const positiveIndexes = (values: number[]) =>
+  values.map((value, index) => (value > 0 ? index : -1)).filter((index) => index >= 0);
 
-  const base = Math.floor(residual / shares.length);
-  const extra = residual % shares.length;
-  return shares.map((share, index) => share + base + (index < extra ? 1 : 0));
+/**
+ * 잔차를 앞사람부터 1원씩 돌린다.
+ *
+ * 나눠 가질 자격이 없는 사람(`eligible` 밖)은 건너뛴다. "3,000원만 보탤게" 라고 한
+ * 사람에게 1원이라도 더 붙으면 본인이 말한 금액과 어긋난다.
+ */
+const spreadResidual = (shares: number[], residual: number, eligible: number[]) => {
+  if (eligible.length === 0 || residual === 0) return shares;
+
+  const base = Math.floor(residual / eligible.length);
+  const extra = residual % eligible.length;
+  const bonusByIndex = new Map(
+    eligible.map((index, order) => [index, base + (order < extra ? 1 : 0)]),
+  );
+  return shares.map((share, index) => share + (bonusByIndex.get(index) ?? 0));
 };
 
 const absorbResidual = (
   shares: number[],
   residual: number,
+  weights: number[],
   payerIndex: number,
   absorber: RoundingAbsorber,
 ) => {
   if (shares.length === 0 || residual === 0) return shares;
-  if (absorber === 'split') return spreadResidual(shares, residual);
 
-  // 결제자가 부담자가 아니면 첫 부담자가 대신 흡수한다. 잔차를 버릴 수는 없다.
-  const index = payerIndex >= 0 ? payerIndex : 0;
+  // 아무도 자격이 없는 퇴화 케이스에서는 잔차를 버릴 수 없으니 전원을 대상으로 둔다.
+  const eligible = positiveIndexes(weights);
+  const targets = eligible.length > 0 ? eligible : shares.map((_, index) => index);
+
+  if (absorber === 'split') return spreadResidual(shares, residual, targets);
+
+  // 결제자가 부담자가 아니면 나눠 가질 자격이 있는 첫 부담자가 대신 흡수한다.
+  const index = payerIndex >= 0 ? payerIndex : (targets[0] ?? 0);
   return shares.map((share, i) => (i === index ? share + residual : share));
 };
 
@@ -100,8 +118,10 @@ const clampCharges = (rawCharges: number[], amount: number) => {
   const chargeSum = sum(rawCharges);
   if (chargeSum <= amount) return { charged: rawCharges, remaining: amount - chargeSum };
 
+  // 잔차는 실제로 추가 부담을 선언한 사람끼리만 나눈다.
   const split = splitByWeight(amount, rawCharges);
-  return { charged: spreadResidual(split.shares, split.residual), remaining: 0 };
+  const charged = spreadResidual(split.shares, split.residual, positiveIndexes(rawCharges));
+  return { charged, remaining: 0 };
 };
 
 /** 추가 부담을 참여자별로 합친다. 전액 부담이 금액 지정보다 상위 개념이다. */
@@ -179,6 +199,7 @@ export const calculateItem = (
   const absorbed = absorbResidual(
     divided.shares,
     divided.residual,
+    weights,
     payerIndex,
     options.roundingAbsorber,
   );

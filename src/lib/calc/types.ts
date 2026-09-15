@@ -39,7 +39,15 @@ export type RoundedTransfers = {
 };
 
 export type SettlementResult = {
+  /** 정산에 반영된 항목만. 결제자가 없는 항목은 빠진다. */
   itemResults: ItemResult[];
+  /**
+   * 결제자가 참여자 목록에 없어 정산에서 제외된 항목.
+   *
+   * 결제액을 낼 사람이 없는데 부담만 시키면 "보낼 곳 없는 빚" 이 생기고
+   * 합계 불변식도 깨진다. 조용히 버리지 않고 드러내서 UI 가 결제자 지정을 유도한다.
+   */
+  invalidItemIds: string[];
   /** `participants` 배열 순서를 따른다. */
   balances: ParticipantBalance[];
   transfers: Transfer[];
