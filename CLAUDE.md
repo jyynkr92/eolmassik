@@ -93,12 +93,13 @@ feature branch  →  develop  →  main
 
 ### 브랜치 네이밍
 
-| 상황 | 규칙 | 예시 |
-|---|---|---|
-| 이슈 번호 있음 | `ISSUE-NUMBER` (기존 유지) | `QDKI-889` |
-| 이슈 번호 없음 | `type/description` | `feat/add-tooltip`, `fix/rounding-residual` |
+`type/description` 형식을 쓴다.
 
-이슈 번호 없을 때 사용하는 type prefix: `feat/`, `fix/`, `refactor/`, `hotfix/`, `perf/`, `chore/`, `docs/`
+```
+feat/extra-charge    fix/rounding-residual    chore/typescript-7
+```
+
+type prefix: `feat/`, `fix/`, `refactor/`, `hotfix/`, `perf/`, `chore/`, `docs/`
 
 ---
 
@@ -139,7 +140,7 @@ feature branch  →  develop  →  main
 2. **축약 승인** — 사용자 확인 (간략화 가능)
 3. **최소 수정** — 문제 해결에 필요한 최소한의 변경만 적용
 4. **검증** — 핵심 경로만 빠르게 확인
-5. **사후 조치** — 정식 버그 티켓 생성 + 근본 원인 조사 필요성 안내
+5. **사후 조치** — 근본 원인 조사가 따로 필요하면 그 사실을 명시하고, 후속 작업으로 남긴다
 
 ### UI/UX 개선
 
@@ -578,7 +579,7 @@ PR 이 열리거나 갱신되면 GitHub Actions(`.github/workflows/ci.yml`)가 l
 ### 커밋 메시지 구조
 
 ```
-type(scope): (ticket num)메시지 제목
+type(scope): 메시지 제목
 
 본문 (선택)
 
@@ -590,7 +591,7 @@ type(scope): (ticket num)메시지 제목
 - 영어 커밋인 경우, 동사 원형으로 시작하며 첫 글자는 대문자로 작성한다.
 - 한글 커밋인 경우, "추가", "수정", "변경" 등의 동사로 시작한다.
 - 본문에는 변경 이유나 목적을 간단히 설명한다.
-- 관련 이슈가 있을 경우, 꼬리말에 `Resolves:`, `Related to:` 등으로 연결한다.
+- 관련된 이슈나 설계 문서 절이 있으면 꼬리말에 `Resolves:`, `Related to:` 로 연결한다.
 
 ### 커밋 타입
 
