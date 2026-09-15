@@ -1,16 +1,16 @@
-import type { ParticipantBalance, Transfer } from './types'
+import type { ParticipantBalance, Transfer } from './types';
 
 /** 전역 DOM `Node` 와 이름이 겹치지 않게 접두어를 붙인다. */
 type DebtNode = {
-  id: string
-  amount: number
-}
+  id: string;
+  amount: number;
+};
 
 const toSortedNodes = (balances: ParticipantBalance[], sign: 1 | -1): DebtNode[] =>
   balances
     .filter((balance) => balance.net * sign > 0)
     .map((balance) => ({ id: balance.participantId, amount: balance.net * sign }))
-    .sort((a, b) => b.amount - a.amount)
+    .sort((a, b) => b.amount - a.amount);
 
 /**
  * 순액에서 송금 내역을 만든다. 기획설계 4.2
@@ -21,28 +21,28 @@ const toSortedNodes = (balances: ParticipantBalance[], sign: 1 | -1): DebtNode[]
  * 같은 입력이면 항상 같은 결과가 나온다.
  */
 export const simplifyDebts = (balances: ParticipantBalance[]): Transfer[] => {
-  const creditors = toSortedNodes(balances, 1)
-  const debtors = toSortedNodes(balances, -1)
+  const creditors = toSortedNodes(balances, 1);
+  const debtors = toSortedNodes(balances, -1);
 
-  const transfers: Transfer[] = []
-  let creditorIndex = 0
-  let debtorIndex = 0
+  const transfers: Transfer[] = [];
+  let creditorIndex = 0;
+  let debtorIndex = 0;
 
   while (creditorIndex < creditors.length && debtorIndex < debtors.length) {
-    const creditor = creditors[creditorIndex]
-    const debtor = debtors[debtorIndex]
-    if (!creditor || !debtor) break
+    const creditor = creditors[creditorIndex];
+    const debtor = debtors[debtorIndex];
+    if (!creditor || !debtor) break;
 
     // 양쪽 다 0보다 큰 금액만 들어오므로 실제로는 걸리지 않는다. 무한 루프 방지용 안전핀이다.
-    const amount = Math.min(creditor.amount, debtor.amount)
-    if (amount <= 0) break
+    const amount = Math.min(creditor.amount, debtor.amount);
+    if (amount <= 0) break;
 
-    transfers.push({ fromId: debtor.id, toId: creditor.id, amount })
-    creditor.amount -= amount
-    debtor.amount -= amount
-    if (creditor.amount === 0) creditorIndex += 1
-    if (debtor.amount === 0) debtorIndex += 1
+    transfers.push({ fromId: debtor.id, toId: creditor.id, amount });
+    creditor.amount -= amount;
+    debtor.amount -= amount;
+    if (creditor.amount === 0) creditorIndex += 1;
+    if (debtor.amount === 0) debtorIndex += 1;
   }
 
-  return transfers
-}
+  return transfers;
+};

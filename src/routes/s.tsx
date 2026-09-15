@@ -1,6 +1,6 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router';
 
-import { SHARE_TEXT } from '@/constants/text/share'
+import { SHARE_TEXT } from '@/constants/text/share';
 
 /**
  * 공유받은 정산 결과 (읽기 전용). 기획설계 5.6
@@ -15,7 +15,7 @@ const SharedPage = () => {
       <h1 className="text-on-surface-base text-2xl font-bold">{SHARE_TEXT.title}</h1>
       <p className="text-on-surface-muted mt-1 text-sm">{SHARE_TEXT.description}</p>
     </main>
-  )
-}
+  );
+};
 
-export const Route = createFileRoute('/s')({ component: SharedPage })
+export const Route = createFileRoute('/s')({ component: SharedPage });

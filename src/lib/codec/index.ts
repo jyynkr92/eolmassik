@@ -9,4 +9,4 @@
  *
  * TODO(다음 PR): encodeSettlement / decodeSettlement
  */
-export {}
+export {};

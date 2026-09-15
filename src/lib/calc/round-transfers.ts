@@ -1,15 +1,15 @@
-import type { Rounding } from '@/types/settlement'
+import type { Rounding } from '@/types/settlement';
 
-import type { RoundedTransfers, Transfer } from './types'
+import type { RoundedTransfers, Transfer } from './types';
 
 /** 반올림 단위. `none` 은 1원 단위라 올림이 아무것도 바꾸지 않는다. 기획설계 4.3 */
 const ROUNDING_UNIT: Record<Rounding, number> = {
   none: 1,
   ceil10: 10,
   ceil100: 100,
-}
+};
 
-const roundUp = (value: number, unit: number) => Math.ceil(value / unit) * unit
+const roundUp = (value: number, unit: number) => Math.ceil(value / unit) * unit;
 
 /**
  * 송금 금액을 올림한다. 기획설계 4.3
@@ -23,38 +23,38 @@ const roundUp = (value: number, unit: number) => Math.ceil(value / unit) * unit
  */
 export const roundTransfers = (transfers: Transfer[], rounding: Rounding): RoundedTransfers => {
   // NOTE: 검증되지 않은 rounding 값이 들어와도 금액이 NaN 이 되지 않게 1원 단위로 떨어뜨린다.
-  const unit = ROUNDING_UNIT[rounding] ?? 1
-  if (unit <= 1) return { transfers, excess: 0 }
+  const unit = ROUNDING_UNIT[rounding] ?? 1;
+  if (unit <= 1) return { transfers, excess: 0 };
 
-  const sentById = new Map<string, number>()
+  const sentById = new Map<string, number>();
   for (const transfer of transfers) {
-    sentById.set(transfer.fromId, (sentById.get(transfer.fromId) ?? 0) + transfer.amount)
+    sentById.set(transfer.fromId, (sentById.get(transfer.fromId) ?? 0) + transfer.amount);
   }
 
-  const gapById = new Map<string, number>()
-  for (const [id, sent] of sentById) gapById.set(id, roundUp(sent, unit) - sent)
+  const gapById = new Map<string, number>();
+  for (const [id, sent] of sentById) gapById.set(id, roundUp(sent, unit) - sent);
 
   // 차액을 얹을 대상은 보내는 사람마다 가장 큰 송금 건 하나다.
-  const targetIndexById = new Map<string, number>()
+  const targetIndexById = new Map<string, number>();
   transfers.forEach((transfer, index) => {
-    const current = targetIndexById.get(transfer.fromId)
+    const current = targetIndexById.get(transfer.fromId);
     if (current === undefined) {
-      targetIndexById.set(transfer.fromId, index)
-      return
+      targetIndexById.set(transfer.fromId, index);
+      return;
     }
     if (transfer.amount > (transfers[current]?.amount ?? 0)) {
-      targetIndexById.set(transfer.fromId, index)
+      targetIndexById.set(transfer.fromId, index);
     }
-  })
+  });
 
   const rounded = transfers.map((transfer, index) => {
-    if (targetIndexById.get(transfer.fromId) !== index) return transfer
+    if (targetIndexById.get(transfer.fromId) !== index) return transfer;
 
-    const gap = gapById.get(transfer.fromId) ?? 0
-    if (gap === 0) return transfer
-    return { ...transfer, amount: transfer.amount + gap }
-  })
+    const gap = gapById.get(transfer.fromId) ?? 0;
+    if (gap === 0) return transfer;
+    return { ...transfer, amount: transfer.amount + gap };
+  });
 
-  const excess = [...gapById.values()].reduce((acc, gap) => acc + gap, 0)
-  return { transfers: rounded, excess }
-}
+  const excess = [...gapById.values()].reduce((acc, gap) => acc + gap, 0);
+  return { transfers: rounded, excess };
+};
