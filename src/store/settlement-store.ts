@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 import { DEFAULT_OPTIONS } from '@/constants/settlement';
+import { createUuid } from '@/lib/uuid';
 import type { Options, Settlement } from '@/types/settlement';
 
 /**
@@ -16,7 +17,7 @@ type SettlementState = {
 };
 
 const createEmptySettlement = (): Settlement => ({
-  id: crypto.randomUUID(),
+  id: createUuid(),
   title: '',
   createdAt: Date.now(),
   participants: [],
