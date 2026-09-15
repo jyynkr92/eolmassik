@@ -63,12 +63,14 @@
 
 ## 시작하기
 
+Node 22 이상, pnpm이 필요합니다.
+
 ```bash
 pnpm install
-pnpm dev
+pnpm dev        # http://localhost:3000
 ```
 
-카카오 공유 기능을 사용하려면 `.env.local`에 JavaScript 키를 설정합니다.
+카카오 공유 기능을 사용하려면 `.env.local`에 JavaScript 키를 설정합니다. 키가 없으면 카카오 공유 버튼이 숨겨지고 링크 복사로 폴백합니다.
 
 ```bash
 VITE_KAKAO_JS_KEY=your_kakao_javascript_key
@@ -76,9 +78,26 @@ VITE_KAKAO_JS_KEY=your_kakao_javascript_key
 
 <br />
 
+## 개발
+
+```bash
+pnpm check-types    # 타입 검사
+pnpm lint           # Biome 린트
+pnpm format         # 포맷·자동수정 적용
+pnpm format:check   # 검사만 (CI와 동일)
+pnpm test           # 단위 테스트
+pnpm build          # 타입 검사 + 프로덕션 빌드
+```
+
+기능 브랜치에서 작업해 `develop`으로 PR을 올리고, `develop`을 `main`으로 머지합니다. PR마다 GitHub Actions가 lint·build·audit를 검사하며, 모두 통과해야 머지할 수 있습니다. `main`에 머지되면 Vercel이 프로덕션으로 배포합니다.
+
+AI 에이전트 작업 규칙은 [`CLAUDE.md`](./CLAUDE.md)에 있습니다.
+
+<br />
+
 ## 테스트
 
-돈 계산이 1원이라도 틀리면 서비스의 신뢰가 무너지므로, 계산 로직은 단위 테스트로 고정되어 있습니다.
+돈 계산이 1원이라도 틀리면 서비스의 신뢰가 무너지므로, 계산 로직은 테스트로 고정되어 있습니다. 합계 불변식은 예제 테스트가 아니라 fast-check property 테스트로 검증합니다.
 
 ```bash
 pnpm test
@@ -110,6 +129,8 @@ src/
 ├─ types/             도메인 모델
 └─ styles/            디자인 토큰, 전역 스타일
 ```
+
+`lib/`에는 공통 유틸(`format.ts`, `cn.ts`)이 함께 있습니다.
 
 계산 로직(`lib/calc`)은 UI에 의존하지 않는 순수 함수로 분리되어 있습니다.
 

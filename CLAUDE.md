@@ -79,7 +79,19 @@
 
 ---
 
-## 브랜치 네이밍
+## 브랜치 전략
+
+```
+feature branch  →  develop  →  main
+```
+
+- **기능 브랜치의 PR 은 항상 `develop` 으로 보낸다.** `main` 을 직접 target 하지 않는다.
+- `main` 으로 가는 PR 은 `develop` 에서만 온다. 릴리스 시점에 올린다.
+- `main` 과 `develop` 은 직접 push 와 삭제가 금지되어 있다. 변경은 PR 로만 들어간다.
+- 머지 조건은 **CI 전체 통과**다. 승인 리뷰어 수는 0명이지만 검사는 우회할 수 없다.
+- `main` 에 머지되면 Vercel 이 프로덕션으로 배포한다. 머지 = 배포임을 항상 염두에 둔다.
+
+### 브랜치 네이밍
 
 | 상황 | 규칙 | 예시 |
 |---|---|---|
@@ -441,6 +453,7 @@ Settlement → 키 축약 스키마 → lz-string 압축 → base64url → /s#<e
 | 다크 모드 | `.dark` 클래스 기반 (`@custom-variant dark`) |
 | arbitrary value | Tailwind 기본 spacing scale 클래스를 우선 사용한다. `w-[400px]` 대신 `w-100` 사용 |
 | 금액 표시 | 자릿수가 흔들리지 않도록 `.tabular` 클래스를 함께 쓴다 |
+| 클래스 병합 | `cn()` (`src/lib/cn.ts`) 사용. 디자인 토큰 충돌 방지 설정이 들어 있다 |
 
 색상은 `text-on-surface-base`, `bg-surface-dim`, `border-outline-base` 같은 토큰 클래스를 쓴다.
 `text-gray-500` 처럼 Tailwind 기본 팔레트를 직접 쓰지 않는다. (다크 모드에서 깨진다)
@@ -542,6 +555,9 @@ pnpm format:check   # Biome 검사만 (CI 와 동일)
 
 작업 완료 보고 전에 최소 `pnpm check-types` + `pnpm lint` + `pnpm format:check` + `pnpm test` 를 통과시킨다.
 계산 로직을 건드렸다면 `pnpm test` 는 **필수**다.
+
+PR 이 열리거나 갱신되면 GitHub Actions(`.github/workflows/ci.yml`)가 lint / build / audit 을 검사한다.
+로컬에서 먼저 걸러야 CI 에서 되돌아오지 않는다.
 
 ---
 
