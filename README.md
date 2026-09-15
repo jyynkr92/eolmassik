@@ -50,7 +50,7 @@
 |---|---|
 | 프레임워크 | React, Vite |
 | 언어 | TypeScript |
-| 라우팅 | TanStack Router |
+| 라우팅 | TanStack Router (파일 기반) |
 | 상태 관리 | Zustand |
 | 스타일 | Tailwind CSS |
 | 공유 | lz-string, Kakao JavaScript SDK |
@@ -106,7 +106,9 @@ src/
 │  └─ codec/          URL 인코딩·디코딩 (키 축약 스키마)
 ├─ routes/            화면 (/ 편집, /s 읽기 전용)
 ├─ store/             Settlement 전역 상태
-└─ types.ts           도메인 모델
+├─ constants/         기본 옵션, 임계값
+├─ types/             도메인 모델
+└─ styles/            디자인 토큰, 전역 스타일
 ```
 
 계산 로직(`lib/calc`)은 UI에 의존하지 않는 순수 함수로 분리되어 있습니다.

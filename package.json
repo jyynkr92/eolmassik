@@ -9,12 +9,14 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "pnpm check-types && vite build",
     "preview": "vite preview",
+    "check-types": "tsc -b",
+    "lint": "biome lint .",
+    "format": "biome check --write .",
+    "format:check": "biome check .",
     "test": "vitest run",
-    "test:watch": "vitest",
-    "lint": "biome check .",
-    "format": "biome check --write ."
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@tanstack/react-router": "^1.170.36",
@@ -27,6 +29,7 @@
   "devDependencies": {
     "@biomejs/biome": "^2.5.13",
     "@tailwindcss/vite": "^4.3.3",
+    "@tanstack/router-plugin": "^1.168.38",
     "@types/node": "^26.5.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
