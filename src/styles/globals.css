@@ -1,0 +1,45 @@
+@import "tailwindcss";
+@import "./theme.css";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/**
+ * 토큰 → Tailwind 클래스 매핑.
+ * bg-surface-base, text-on-surface-muted, border-outline-base 처럼 쓴다.
+ */
+@theme inline {
+  --color-surface-base: var(--color-surface-base);
+  --color-surface-dim: var(--color-surface-dim);
+  --color-surface-raised: var(--color-surface-raised);
+
+  --color-on-surface-base: var(--color-on-surface-base);
+  --color-on-surface-muted: var(--color-on-surface-muted);
+  --color-on-surface-inverse: var(--color-on-surface-inverse);
+
+  --color-outline-base: var(--color-outline-base);
+  --color-outline-strong: var(--color-outline-strong);
+
+  --color-accent-base: var(--color-accent-base);
+  --color-accent-on: var(--color-accent-on);
+
+  --color-credit-base: var(--color-credit-base);
+  --color-debit-base: var(--color-debit-base);
+
+  --font-sans:
+    "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui,
+    "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+}
+
+html {
+  /* 모바일 사파리에서 입력 포커스 시 확대되는 것을 막는다 */
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  @apply bg-surface-base text-on-surface-base font-sans antialiased;
+}
+
+/* 금액은 자릿수가 흔들리면 읽기 어려우므로 tabular numerals 를 쓴다 */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}

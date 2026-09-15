@@ -1,0 +1,7 @@
+{
+  // 에디터도 워크스페이스의 TypeScript 7 을 쓰게 한다.
+  // 이 설정이 없으면 VS Code 는 번들된 구버전 컴파일러를 써서
+  // 터미널(pnpm check-types)과 에디터의 진단 결과가 달라진다.
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true
+}
