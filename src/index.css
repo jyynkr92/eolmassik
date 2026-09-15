@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans:
+    "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui,
+    "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+}
+
+html {
+  /* 모바일 사파리에서 입력 포커스 시 확대되는 것을 막는다. */
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  @apply bg-white text-neutral-900 font-sans antialiased;
+}
+
+/* 금액은 자릿수가 흔들리면 읽기 어려우므로 tabular numerals를 쓴다. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
