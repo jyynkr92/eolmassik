@@ -41,6 +41,27 @@ jobs:
       - name: Format check
         run: pnpm format:check
 
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # vitest run 이므로 watch 로 매달리지 않는다.
+      # 돈 계산이 틀리면 서비스 신뢰가 무너지므로 이 검사는 우회할 수 없어야 한다.
+      - name: Test
+        run: pnpm test
+
   build:
     name: Build
     runs-on: ubuntu-latest

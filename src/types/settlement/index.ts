@@ -8,19 +8,19 @@
 
 /** 참여자. */
 export type Participant = {
-  id: string
+  id: string;
   /** "은정이네", "민수" */
-  name: string
+  name: string;
   /**
    * N빵 가중치. 기본 1.
    * 커플·가족을 별도 그룹 엔티티로 만들지 않고 한 참여자에 2 이상을 준다.
    * 기획설계 3.2 — 설계 결정
    */
-  headcount: number
-}
+  headcount: number;
+};
 
 /** 추가 부담 방식. `full` 은 value 가 항목 전액인 특수 케이스다. */
-export type ExtraChargeType = 'amount' | 'full'
+export type ExtraChargeType = 'amount' | 'full';
 
 /**
  * 추가 부담. "13,000원 중 우리가 8,000원 낼게"와 "바베큐는 우리가 낼게"는
@@ -28,51 +28,58 @@ export type ExtraChargeType = 'amount' | 'full'
  * UI 에서만 "전액" 토글로 따로 노출한다. 기획설계 3.4
  */
 export type ExtraCharge = {
-  participantId: string
-  type: ExtraChargeType
+  participantId: string;
+  type: ExtraChargeType;
   /** type 이 'amount' 일 때만 사용. 정수 원 단위. */
-  value?: number
-}
+  value?: number;
+};
 
 /** 정산 항목. */
 export type Item = {
-  id: string
+  id: string;
   /** "고기", "바베큐장 이용료" */
-  name: string
+  name: string;
   /** 정수 원 단위. */
-  amount: number
+  amount: number;
   /**
    * 실제로 결제한 사람. 부담자(participantIds)와 반드시 분리해야
    * "누가 누구에게 얼마 보내면 되는지"가 나온다. 기획설계 3.3 — 설계 결정
    */
-  payerId: string
+  payerId: string;
   /** 이 항목을 부담하는 사람들. 신규 항목의 기본값은 전원이다. */
-  participantIds: string[]
-  extraCharges: ExtraCharge[]
-}
+  participantIds: string[];
+  extraCharges: ExtraCharge[];
+};
 
 /** 원 단위 반올림 정책. 기획설계 3.5 / 4.3 */
-export type Rounding = 'none' | 'ceil10' | 'ceil100'
+export type Rounding = 'none' | 'ceil10' | 'ceil100';
 
 /** 나눠떨어지지 않고 남은 잔차를 누가 흡수할지. */
-export type RoundingAbsorber = 'payer' | 'split'
+export type RoundingAbsorber = 'payer' | 'split';
+
+/**
+ * `full` 부담자가 여러 명일 때 나누는 방식.
+ * "이건 우리가 낼게" 를 두 팀이 같이 선언한 경우다. 기본은 headcount 를 무시한 n등분이다.
+ */
+export type FullChargeSplit = 'even' | 'headcount';
 
 export type Options = {
-  rounding: Rounding
-  roundingAbsorber: RoundingAbsorber
-}
+  rounding: Rounding;
+  roundingAbsorber: RoundingAbsorber;
+  fullChargeSplit: FullChargeSplit;
+};
 
 export type Settlement = {
-  id: string
+  id: string;
   /** "9/15 캠핑" */
-  title: string
-  createdAt: number
-  participants: Participant[]
-  items: Item[]
-  options: Options
+  title: string;
+  createdAt: number;
+  participants: Participant[];
+  items: Item[];
+  options: Options;
   /**
    * 기본 결제자. 항목마다 매번 고르게 하지 않고 이 사람을 자동 적용한 뒤
    * 예외인 항목만 payerId 를 바꾼다. 기획설계 9 — 결정 기록 7
    */
-  defaultPayerId: string | null
-}
+  defaultPayerId: string | null;
+};

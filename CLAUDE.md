@@ -248,7 +248,8 @@ type prefix: `feat/`, `fix/`, `refactor/`, `hotfix/`, `perf/`, `chore/`, `docs/`
 - 불필요한 리렌더링을 방지한다.
 - early return 을 사용한다.
 - `any` 타입 사용 불가. strict typing 을 사용한다.
-- 사용자-facing 텍스트는 한국어로 컴포넌트에 직접 작성한다. (i18n 미도입)
+- 사용자-facing 텍스트는 한국어로 `constants/text/` 에 모아두고 컴포넌트에서 가져다 쓴다.
+  i18n 은 도입하지 않지만, 문구가 화면 곳곳에 흩어지면 같은 말이 화면마다 달라진다.
 
 ### 함수 작성 규칙
 
@@ -285,6 +286,17 @@ hooks/use-settlement-result.ts
 store/settlement-store.ts
 lib/format.ts
 ```
+
+**테스트 전용 파일은 이름으로 드러낸다.**
+
+| 대상 | 규칙 | 예시 |
+|---|---|---|
+| 테스트 | `*.test.ts` | `calculate-item.test.ts` |
+| 테스트 전용 헬퍼 | `*.test-helper.ts` | `arbitraries.test-helper.ts` |
+
+`fast-check` 처럼 devDependency 를 쓰는 파일이 앱 코드처럼 보이면, 누군가 import 하는 순간
+프로덕션 번들로 끌려온다. `biome.json` 의 `overrides` 가 테스트가 아닌 파일에서의
+`fast-check` import 를 error 로 막는다. 테스트 전용 의존성을 새로 들이면 그 목록에 함께 추가한다.
 
 ### 함수 / 변수 네이밍
 
@@ -325,6 +337,7 @@ boolean 변수는 예외: `is`/`has`/`can`/`should` 접두어가 이미 긍정�
 | 도메인 유틸 | `lib/feature/` | `lib/calc/calculate-item.ts` |
 | 타입 | `types/feature/` | `types/settlement/index.ts` |
 | 상수 | `constants/` | `constants/settlement.ts` |
+| 텍스트 | `constants/text/` | `constants/text/home.ts` |
 | 스타일 | `styles/` | `styles/globals.css` |
 
 현재 features 구성은 기획설계 5장의 화면 흐름을 따른다.
@@ -342,6 +355,7 @@ src/
 ├─ routes/            화면 (/ 편집, /s 읽기 전용)
 ├─ store/             Settlement 전역 상태
 ├─ constants/
+│  └─ text/           화면별 사용자-facing 문구
 ├─ types/
 └─ styles/
 ```
@@ -424,6 +438,9 @@ ItemRow.displayName = 'ItemRow';
 - UI 에 의존하지 않는 **순수 함수**만 둔다. 같은 입력이면 항상 같은 출력이어야 한다.
 - 함수 하나당 파일 하나. 파일명은 함수명의 kebab-case. (`calculate-item.ts`)
 - 모든 공개 함수는 같은 폴더의 `*.test.ts` 를 가진다.
+  단, `*.test-helper.ts` 는 테스트 전용 파일이므로 이 규칙에서 제외한다.
+- **밖으로 내보내는 타입은 `types.ts` 에, 그 파일 안에서만 쓰는 타입은 그 파일에 둔다.**
+  구현 세부 타입을 `types.ts` 로 올리면 계산 모듈의 공개 계약처럼 보인다.
 - 합계 불변식은 fast-check property 테스트로 고정한다. 예제 테스트만으로는 부족하다.
 - 기획설계 4.1 의 검증 예제(고기 32,000원 → 잔차 1원 결제자 흡수)는 회귀 테스트로 유지한다.
 
@@ -538,6 +555,20 @@ const amount = item.amount || 0;
 ### 상수 / 타입 정의
 
 하드코딩을 지양하고 `constants/`, `types/` 에 정의하여 사용한다.
+
+사용자-facing 텍스트는 `constants/text/` 아래 **화면 단위로 파일을 나눈다.**
+파일명은 화면 이름의 kebab-case 이고, 상수명은 `SCREEN_TEXT` 형태의 `as const` 객체다.
+두 화면 이상에서 쓰는 문구만 `common.ts` 에 둔다.
+
+```ts
+// constants/text/share.ts — [5] 공유받은 결과. 기획설계 5.6
+export const SHARE_TEXT = {
+  title: '공유받은 정산',
+  description: '읽기 전용 결과 화면',
+} as const;
+```
+
+접근성 레이블(`aria-label`)과 에러 메시지도 같은 규칙을 따른다.
 
 ### 주석
 
