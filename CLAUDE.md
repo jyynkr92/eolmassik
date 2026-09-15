@@ -287,6 +287,17 @@ store/settlement-store.ts
 lib/format.ts
 ```
 
+**테스트 전용 파일은 이름으로 드러낸다.**
+
+| 대상 | 규칙 | 예시 |
+|---|---|---|
+| 테스트 | `*.test.ts` | `calculate-item.test.ts` |
+| 테스트 전용 헬퍼 | `*.test-helper.ts` | `arbitraries.test-helper.ts` |
+
+`fast-check` 처럼 devDependency 를 쓰는 파일이 앱 코드처럼 보이면, 누군가 import 하는 순간
+프로덕션 번들로 끌려온다. `biome.json` 의 `overrides` 가 테스트가 아닌 파일에서의
+`fast-check` import 를 error 로 막는다. 테스트 전용 의존성을 새로 들이면 그 목록에 함께 추가한다.
+
 ### 함수 / 변수 네이밍
 
 | 대상 | 규칙 |
@@ -427,6 +438,7 @@ ItemRow.displayName = 'ItemRow';
 - UI 에 의존하지 않는 **순수 함수**만 둔다. 같은 입력이면 항상 같은 출력이어야 한다.
 - 함수 하나당 파일 하나. 파일명은 함수명의 kebab-case. (`calculate-item.ts`)
 - 모든 공개 함수는 같은 폴더의 `*.test.ts` 를 가진다.
+  단, `*.test-helper.ts` 는 테스트 전용 파일이므로 이 규칙에서 제외한다.
 - 합계 불변식은 fast-check property 테스트로 고정한다. 예제 테스트만으로는 부족하다.
 - 기획설계 4.1 의 검증 예제(고기 32,000원 → 잔차 1원 결제자 흡수)는 회귀 테스트로 유지한다.
 

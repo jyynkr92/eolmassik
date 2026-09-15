@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { DEFAULT_OPTIONS } from '@/constants/settlement'
 import type { Rounding, Settlement } from '@/types/settlement'
 
-import { arbitrarySettlement } from './arbitraries'
+import { arbitrarySettlement } from './arbitraries.test-helper'
 import { calculateSettlement } from './calculate-settlement'
 
 const ROUNDING_UNIT: Record<Rounding, number> = { none: 1, ceil10: 10, ceil100: 100 }

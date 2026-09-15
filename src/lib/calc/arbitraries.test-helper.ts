@@ -1,5 +1,8 @@
 /**
- * 계산 로직 property 테스트용 arbitrary 모음.
+ * 계산 로직 property 테스트용 arbitrary 모음. **테스트 전용 파일이다.**
+ *
+ * 앱 코드에서 import 하면 fast-check 가 프로덕션 번들로 끌려온다.
+ * biome.json 의 override 가 테스트가 아닌 파일에서의 import 를 막는다.
  *
  * 합계 불변식은 예제 테스트로는 부족하다. 추가 부담이 항목 금액을 넘는 경우,
  * headcount 가 0인 참여자, 부담자가 없는 항목 같은 케이스까지 생성해서 흔든다.

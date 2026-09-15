@@ -23,5 +23,24 @@
   },
   "css": {
     "parser": { "tailwindDirectives": true }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["src/**", "!**/*.test.ts", "!**/*.test-helper.ts"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "fast-check": "테스트 전용 의존성입니다. 앱 코드에서 import 하면 프로덕션 번들로 끌려옵니다."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }

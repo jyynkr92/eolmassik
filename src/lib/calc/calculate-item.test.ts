@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest'
 import { DEFAULT_OPTIONS } from '@/constants/settlement'
 import type { ExtraCharge, Item, Options, Participant } from '@/types/settlement'
 
-import { arbitraryItem, arbitraryOptions, arbitraryParticipants } from './arbitraries'
+import { arbitraryItem, arbitraryOptions, arbitraryParticipants } from './arbitraries.test-helper'
 import { calculateItem } from './calculate-item'
 
 const participant = (id: string, headcount = 1): Participant => ({
