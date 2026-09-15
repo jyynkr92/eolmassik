@@ -1,6 +1,7 @@
 import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
-import { formatAmount, formatWon } from './money'
+
+import { formatAmount, formatWon } from './format'
 
 describe('formatAmount', () => {
   it('세 자리마다 쉼표를 넣는다', () => {

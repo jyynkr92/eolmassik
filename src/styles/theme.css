@@ -1,0 +1,49 @@
+/**
+ * 디자인 토큰 — 값 정의.
+ *
+ * 여기에는 원시 값만 둔다. Tailwind 클래스로 노출하는 매핑은 globals.css 의
+ * `@theme inline` 에서 한다. 다크 모드는 `.dark` 클래스로 같은 변수를 덮어쓴다.
+ */
+
+:root {
+  /* surface */
+  --color-surface-base: #ffffff;
+  --color-surface-dim: #f5f5f5;
+  --color-surface-raised: #ffffff;
+
+  /* on-surface (텍스트) */
+  --color-on-surface-base: #171717;
+  --color-on-surface-muted: #737373;
+  --color-on-surface-inverse: #ffffff;
+
+  /* outline */
+  --color-outline-base: #e5e5e5;
+  --color-outline-strong: #d4d4d4;
+
+  /* accent — 정산 결과의 송금 금액 강조에 사용 */
+  --color-accent-base: #2563eb;
+  --color-accent-on: #ffffff;
+
+  /* 금액 부호. 받을 돈 / 보낼 돈 */
+  --color-credit-base: #2563eb;
+  --color-debit-base: #dc2626;
+}
+
+.dark {
+  --color-surface-base: #0a0a0a;
+  --color-surface-dim: #171717;
+  --color-surface-raised: #262626;
+
+  --color-on-surface-base: #fafafa;
+  --color-on-surface-muted: #a3a3a3;
+  --color-on-surface-inverse: #0a0a0a;
+
+  --color-outline-base: #404040;
+  --color-outline-strong: #525252;
+
+  --color-accent-base: #60a5fa;
+  --color-accent-on: #0a0a0a;
+
+  --color-credit-base: #60a5fa;
+  --color-debit-base: #f87171;
+}
