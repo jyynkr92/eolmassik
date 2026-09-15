@@ -6,6 +6,8 @@
  */
 export { calculateItem } from './calculate-item'
 export { calculateSettlement } from './calculate-settlement'
+export type { RoundedTransfers } from './round-transfers'
+export { roundTransfers } from './round-transfers'
 export { simplifyDebts } from './simplify-debts'
 export type {
   ItemResult,

@@ -7,8 +7,6 @@ import type { ExtraCharge, Item, Options, Participant } from '@/types/settlement
 import { arbitraryItem, arbitraryOptions, arbitraryParticipants } from './arbitraries'
 import { calculateItem } from './calculate-item'
 
-const ROUNDING_UNIT = { none: 1, ceil10: 10, ceil100: 100 } as const
-
 const participant = (id: string, headcount = 1): Participant => ({
   id,
   name: id,
@@ -199,22 +197,51 @@ describe('calculateItem', () => {
     })
   })
 
-  describe('반올림', () => {
-    it('ceil100 은 각자의 부담액을 올리고 초과분은 결제자 이득으로 남긴다', () => {
-      const participants = [participant('p0'), participant('p1'), participant('p2')]
-      const target = item({
-        amount: 10_000,
-        participantIds: ['p0', 'p1', 'p2'],
-      })
+  it('반올림 정책은 부담액을 건드리지 않는다', () => {
+    const participants = [participant('p0'), participant('p1'), participant('p2')]
+    const target = item({ amount: 10_000, participantIds: ['p0', 'p1', 'p2'] })
 
-      const result = calculateItem(target, participants, options({ rounding: 'ceil100' }))
+    // 올림은 송금 금액에만 적용한다. 항목 단위로 올리면 손해가 항목 수만큼 누적된다.
+    const exact = calculateItem(target, participants, DEFAULT_OPTIONS)
+    const ceiled = calculateItem(target, participants, options({ rounding: 'ceil100' }))
 
-      expect(result.shares.map((share) => share.amount)).toEqual([3_400, 3_400, 3_400])
-      expect(result.total).toBe(10_200)
-    })
+    expect(ceiled.shares).toEqual(exact.shares)
+    expect(ceiled.total).toBe(10_000)
   })
 
   describe('엣지 케이스', () => {
+    it('추가 부담만 걸린 사람에게 잔액을 몰아주지 않는다', () => {
+      // "안 먹었는데 3,000원만 보탤게" 가 전액 부담으로 뒤집히면 안 된다.
+      const participants = [participant('p0'), participant('p1')]
+      const target = item({
+        amount: 10_000,
+        payerId: 'p0',
+        participantIds: [],
+        extraCharges: [{ participantId: 'p1', type: 'amount', value: 3_000 }],
+      })
+
+      const result = calculateItem(target, participants, DEFAULT_OPTIONS)
+
+      expect(amountOf(result, 'p0')).toBe(7_000)
+      expect(amountOf(result, 'p1')).toBe(3_000)
+      expect(result.total).toBe(10_000)
+    })
+
+    it('잔차 흡수자가 split 이어도 잔액은 결제자가 진다', () => {
+      const participants = [participant('p0'), participant('p1')]
+      const target = item({
+        amount: 10_000,
+        payerId: 'p0',
+        participantIds: [],
+        extraCharges: [{ participantId: 'p1', type: 'amount', value: 3_000 }],
+      })
+
+      const result = calculateItem(target, participants, options({ roundingAbsorber: 'split' }))
+
+      expect(amountOf(result, 'p0')).toBe(7_000)
+      expect(amountOf(result, 'p1')).toBe(3_000)
+    })
+
     it('부담자가 없으면 결제자가 전액을 진다', () => {
       const participants = [participant('p0'), participant('p1')]
       const target = item({ amount: 10_000, payerId: 'p1', participantIds: [] })
@@ -257,7 +284,7 @@ describe('calculateItem', () => {
       expect(result.total).toBe(0)
     })
 
-    it('headcount 가 전원 0이면 잔차 흡수자가 전액을 진다', () => {
+    it('headcount 가 전원 0이면 결제자가 전액을 진다', () => {
       const participants = [participant('p0', 0), participant('p1', 0)]
       const result = calculateItem(
         item({ amount: 10_000, participantIds: ['p0', 'p1'] }),
@@ -279,13 +306,10 @@ describe('calculateItem', () => {
         }),
       )
 
-    it('rounding 이 none 이면 부담액의 합은 항상 항목 금액과 같다', () => {
+    it('부담액의 합은 rounding 과 무관하게 항상 항목 금액과 같다', () => {
       fc.assert(
         fc.property(arbitraryCase(), ({ participants, item: target, options: generated }) => {
-          const result = calculateItem(target, participants, {
-            ...generated,
-            rounding: 'none',
-          })
+          const result = calculateItem(target, participants, generated)
 
           expect(result.total).toBe(target.amount)
         }),
@@ -305,16 +329,13 @@ describe('calculateItem', () => {
       )
     })
 
-    it('올림을 켜면 합계가 항목 금액 이상이고, 초과분은 단위 x 부담자 수보다 작다', () => {
+    it('rounding 값이 결과를 바꾸지 않는다', () => {
       fc.assert(
         fc.property(arbitraryCase(), ({ participants, item: target, options: generated }) => {
-          const result = calculateItem(target, participants, generated)
-          const unit = ROUNDING_UNIT[generated.rounding]
+          const exact = calculateItem(target, participants, { ...generated, rounding: 'none' })
+          const ceiled = calculateItem(target, participants, { ...generated, rounding: 'ceil100' })
 
-          expect(result.total).toBeGreaterThanOrEqual(target.amount)
-          expect(result.total - target.amount).toBeLessThan(
-            unit * Math.max(1, result.shares.length),
-          )
+          expect(ceiled.shares).toEqual(exact.shares)
         }),
       )
     })

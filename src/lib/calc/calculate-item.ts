@@ -3,25 +3,12 @@ import type {
   Item,
   Options,
   Participant,
-  Rounding,
   RoundingAbsorber,
 } from '@/types/settlement'
 
 import type { ItemResult, ItemShare } from './types'
 
-/** 반올림 단위. `none` 은 1원 단위라 올림이 아무것도 바꾸지 않는다. 기획설계 4.3 */
-const ROUNDING_UNIT: Record<Rounding, number> = {
-  none: 1,
-  ceil10: 10,
-  ceil100: 100,
-}
-
 const sum = (values: number[]) => values.reduce((acc, value) => acc + value, 0)
-
-const roundUp = (value: number, unit: number) => {
-  if (unit <= 1) return value
-  return Math.ceil(value / unit) * unit
-}
 
 type WeightedSplit = {
   shares: number[]
@@ -79,6 +66,33 @@ const fullChargeWeights = (
 }
 
 /**
+ * 남은 금액을 나눠 가질 가중치.
+ *
+ * `full` 부담자가 있으면 그들이 전부 가져간다. 없으면 `participantIds` 의 부담자끼리
+ * headcount 비례로 N빵한다. 추가 부담만 걸린 사람은 "이 항목에 4,000원만 보탤게" 라는
+ * 뜻이므로 N빵 대상이 아니다.
+ */
+const resolveWeights = (
+  bearers: Participant[],
+  splitTargetIds: Set<string>,
+  fullIds: Set<string>,
+  payerIndex: number,
+  options: Options,
+) => {
+  if (bearers.some((bearer) => fullIds.has(bearer.id)))
+    return fullChargeWeights(bearers, fullIds, options.fullChargeSplit)
+
+  const weights = bearers.map((bearer) =>
+    splitTargetIds.has(bearer.id) ? Math.max(0, bearer.headcount) : 0,
+  )
+  if (sum(weights) > 0 || payerIndex < 0) return weights
+
+  // 나눠 가질 사람이 아무도 없으면 결제자가 잔액을 진다. 추가 부담만 걸린 사람에게
+  // 몰아주면 "3,000원만 보탤게" 가 전액 부담으로 뒤집힌다.
+  return bearers.map((_, index) => (index === payerIndex ? 1 : 0))
+}
+
+/**
  * `amount` 추가 부담을 확정한다. 합계가 항목 금액을 넘으면 비율로 축소해
  * "부담액 합 == 항목 금액" 불변식을 지킨다. 이때 N빵할 금액은 남지 않는다.
  */
@@ -88,6 +102,25 @@ const clampCharges = (rawCharges: number[], amount: number) => {
 
   const split = splitByWeight(amount, rawCharges)
   return { charged: spreadResidual(split.shares, split.residual), remaining: 0 }
+}
+
+/** 추가 부담을 참여자별로 합친다. 전액 부담이 금액 지정보다 상위 개념이다. */
+const collectCharges = (item: Item) => {
+  const fullIds = new Set<string>()
+  const amountById = new Map<string, number>()
+
+  for (const charge of item.extraCharges) {
+    if (charge.type === 'full') {
+      fullIds.add(charge.participantId)
+      continue
+    }
+    const previous = amountById.get(charge.participantId) ?? 0
+    amountById.set(charge.participantId, previous + Math.max(0, charge.value ?? 0))
+  }
+  // 한 사람에게 전액과 금액 지정이 함께 걸리면 전액만 남긴다.
+  for (const id of fullIds) amountById.delete(id)
+
+  return { fullIds, amountById }
 }
 
 const toResult = (item: Item, bearers: Participant[], amounts: number[]): ItemResult => {
@@ -103,21 +136,26 @@ const toResult = (item: Item, bearers: Participant[], amounts: number[]): ItemRe
  *
  * 1. `amount` 추가 부담을 먼저 확정한다. 합계가 항목 금액을 넘으면 비율로 축소한다
  * 2. 남은 금액(`remaining`)을 구한다
- * 3. `full` 부담자가 있으면 `remaining` 을 그들끼리 나눈다.
- *    없으면 `participantIds` 의 부담자끼리 headcount 비례로 N빵한다
+ * 3. `full` 부담자가 있으면 `remaining` 을 그들끼리 나눈다. 없으면 N빵한다
  * 4. 내림에서 생긴 잔차를 흡수자에게 몰아준다
- * 5. `rounding` 이 `none` 이 아니면 각자의 부담액을 올림한다
  *
- * `rounding` 이 `none` 인 동안 부담액의 합은 항상 `item.amount` 와 같다.
- * 올림을 켜면 합계가 항목 금액을 넘고, 초과분은 송금 계산에서 결제자 이득으로 돌아간다. 기획설계 4.3
+ * 부담액의 합은 **항상** `item.amount` 와 같다. 반올림 정책은 여기서 다루지 않고
+ * 송금 금액에만 적용한다. 항목 단위로 올리면 손해가 항목 수만큼 누적된다. `round-transfers.ts`
  */
 export const calculateItem = (
   item: Item,
   participants: Participant[],
   options: Options,
 ): ItemResult => {
-  const unit = ROUNDING_UNIT[options.rounding]
+  // NOTE: 음수 금액 방어. lib/codec 의 Zod 검증이 생기면 그쪽으로 옮긴다.
   const amount = Math.max(0, item.amount)
+  const { fullIds, amountById } = collectCharges(item)
+
+  const splitTargetIds = new Set(item.participantIds)
+  const hasFullBearer = participants.some((participant) => fullIds.has(participant.id))
+  const hasSplitTarget = participants.some(
+    (participant) => splitTargetIds.has(participant.id) && participant.headcount > 0,
+  )
 
   // 추가 부담 대상은 participantIds 에서 빠져 있어도 부담자로 본다.
   // 빼버리면 그 사람이 내기로 한 돈이 조용히 사라져 합계가 어긋난다.
@@ -125,44 +163,18 @@ export const calculateItem = (
     ...item.participantIds,
     ...item.extraCharges.map((charge) => charge.participantId),
   ])
+  // 나눠 가질 사람이 아무도 없으면 결제자를 부담자로 세운다.
+  if (!hasFullBearer && !hasSplitTarget) bearerIds.add(item.payerId)
+
   const bearers = participants.filter((participant) => bearerIds.has(participant.id))
+  if (bearers.length === 0) return { itemId: item.id, shares: [], total: 0 }
 
-  // 부담자가 아무도 없으면 결제자가 전액을 진다.
-  if (bearers.length === 0) {
-    const payer = participants.find((participant) => participant.id === item.payerId)
-    if (!payer) return { itemId: item.id, shares: [], total: 0 }
-    return toResult(item, [payer], [roundUp(amount, unit)])
-  }
-
-  const fullIds = new Set<string>()
-  const chargeByParticipant = new Map<string, number>()
-  for (const charge of item.extraCharges) {
-    if (charge.type === 'full') {
-      fullIds.add(charge.participantId)
-      continue
-    }
-    const previous = chargeByParticipant.get(charge.participantId) ?? 0
-    chargeByParticipant.set(charge.participantId, previous + Math.max(0, charge.value ?? 0))
-  }
-  // 전액 부담이 금액 지정보다 상위 개념이다. 한 사람에게 둘 다 걸리면 전액만 남긴다.
-  for (const id of fullIds) chargeByParticipant.delete(id)
-
-  const rawCharges = bearers.map((bearer) => chargeByParticipant.get(bearer.id) ?? 0)
   const payerIndex = bearers.findIndex((bearer) => bearer.id === item.payerId)
+  const rawCharges = bearers.map((bearer) => amountById.get(bearer.id) ?? 0)
 
-  // 1~2. 추가 부담을 확정하고 남은 금액을 구한다.
   const { charged, remaining } = clampCharges(rawCharges, amount)
+  const weights = resolveWeights(bearers, splitTargetIds, fullIds, payerIndex, options)
 
-  // 3. full 부담자가 있으면 남은 금액을 전부 그들이 가져간다.
-  // N빵 대상은 participantIds 에 있는 사람뿐이다. 추가 부담만 걸린 사람은
-  // "이 항목에 4,000원만 보탤게" 라는 뜻이므로 N빵까지 얹으면 안 된다.
-  const hasFullBearer = bearers.some((bearer) => fullIds.has(bearer.id))
-  const nBangIds = new Set(item.participantIds)
-  const weights = hasFullBearer
-    ? fullChargeWeights(bearers, fullIds, options.fullChargeSplit)
-    : bearers.map((bearer) => (nBangIds.has(bearer.id) ? Math.max(0, bearer.headcount) : 0))
-
-  // 4. 내림 후 잔차 흡수.
   const divided = splitByWeight(remaining, weights)
   const absorbed = absorbResidual(
     divided.shares,
@@ -171,9 +183,6 @@ export const calculateItem = (
     options.roundingAbsorber,
   )
 
-  // 5. 반올림 정책 적용.
-  const amounts = bearers.map((_, index) =>
-    roundUp((charged[index] ?? 0) + (absorbed[index] ?? 0), unit),
-  )
+  const amounts = bearers.map((_, index) => (charged[index] ?? 0) + (absorbed[index] ?? 0))
   return toResult(item, bearers, amounts)
 }

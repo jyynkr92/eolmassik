@@ -37,6 +37,11 @@ export type SettlementResult = {
   /** `participants` 배열 순서를 따른다. */
   balances: ParticipantBalance[]
   transfers: Transfer[]
+  /**
+   * 송금액 올림 때문에 더 걷힌 금액. `rounding` 이 `'none'` 이면 0이다.
+   * 받는 사람(보통 결제자) 이득이므로 결과 화면에 명시해야 한다. 기획설계 4.3
+   */
+  roundingExcess: number
   /** 전체 항목 금액의 합. */
   totalAmount: number
 }

@@ -1,6 +1,7 @@
 import type { Settlement } from '@/types/settlement'
 
 import { calculateItem } from './calculate-item'
+import { roundTransfers } from './round-transfers'
 import { simplifyDebts } from './simplify-debts'
 import type { ParticipantBalance, SettlementResult } from './types'
 
@@ -9,6 +10,8 @@ import type { ParticipantBalance, SettlementResult } from './types'
  *
  * 항목별 부담액을 모두 구한 뒤 참여자별로 "결제한 금액 - 부담할 금액" 을 내고,
  * 그 순액에서 송금 내역을 뽑는다. 계산 결과는 스토어에 두지 않고 매번 여기서 파생시킨다.
+ *
+ * 반올림은 마지막 송금 금액에만 적용한다. 부담액 계산은 항상 1원 단위로 정확하다.
  */
 export const calculateSettlement = (settlement: Settlement): SettlementResult => {
   const { participants, items, options } = settlement
@@ -37,10 +40,13 @@ export const calculateSettlement = (settlement: Settlement): SettlementResult =>
     return { participantId: participant.id, paid, owed, net: paid - owed }
   })
 
+  const { transfers, excess } = roundTransfers(simplifyDebts(balances), options.rounding)
+
   return {
     itemResults,
     balances,
-    transfers: simplifyDebts(balances),
+    transfers,
+    roundingExcess: excess,
     totalAmount: items.reduce((acc, item) => acc + Math.max(0, item.amount), 0),
   }
 }
