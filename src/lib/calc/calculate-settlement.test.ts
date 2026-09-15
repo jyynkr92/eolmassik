@@ -1,13 +1,11 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_OPTIONS } from '@/constants/settlement';
-import type { Rounding, Settlement } from '@/types/settlement';
+import { DEFAULT_OPTIONS, ROUNDING_UNIT } from '@/constants/settlement';
+import type { Settlement } from '@/types/settlement';
 
 import { arbitrarySettlement } from './arbitraries.test-helper';
 import { calculateSettlement } from './calculate-settlement';
-
-const ROUNDING_UNIT: Record<Rounding, number> = { none: 1, ceil10: 10, ceil100: 100 };
 
 const sum = (values: number[]) => values.reduce((acc, value) => acc + value, 0);
 

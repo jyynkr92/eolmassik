@@ -1,12 +1,10 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 
-import type { Rounding } from '@/types/settlement';
+import { ROUNDING_UNIT } from '@/constants/settlement';
 
 import { roundTransfers } from './round-transfers';
 import type { Transfer } from './types';
-
-const ROUNDING_UNIT: Record<Rounding, number> = { none: 1, ceil10: 10, ceil100: 100 };
 
 const transfer = (fromId: string, toId: string, amount: number): Transfer => ({
   fromId,

@@ -1,13 +1,7 @@
+import { ROUNDING_UNIT } from '@/constants/settlement';
 import type { Rounding } from '@/types/settlement';
 
 import type { RoundedTransfers, Transfer } from './types';
-
-/** 반올림 단위. `none` 은 1원 단위라 올림이 아무것도 바꾸지 않는다. 기획설계 4.3 */
-const ROUNDING_UNIT: Record<Rounding, number> = {
-  none: 1,
-  ceil10: 10,
-  ceil100: 100,
-};
 
 const roundUp = (value: number, unit: number) => Math.ceil(value / unit) * unit;
 
