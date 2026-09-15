@@ -1,11 +1,12 @@
 import type { ParticipantBalance, Transfer } from './types'
 
-type Node = {
+/** 전역 DOM `Node` 와 이름이 겹치지 않게 접두어를 붙인다. */
+type DebtNode = {
   id: string
   amount: number
 }
 
-const toSortedNodes = (balances: ParticipantBalance[], sign: 1 | -1): Node[] =>
+const toSortedNodes = (balances: ParticipantBalance[], sign: 1 | -1): DebtNode[] =>
   balances
     .filter((balance) => balance.net * sign > 0)
     .map((balance) => ({ id: balance.participantId, amount: balance.net * sign }))
@@ -32,6 +33,7 @@ export const simplifyDebts = (balances: ParticipantBalance[]): Transfer[] => {
     const debtor = debtors[debtorIndex]
     if (!creditor || !debtor) break
 
+    // 양쪽 다 0보다 큰 금액만 들어오므로 실제로는 걸리지 않는다. 무한 루프 방지용 안전핀이다.
     const amount = Math.min(creditor.amount, debtor.amount)
     if (amount <= 0) break
 

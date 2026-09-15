@@ -40,10 +40,10 @@ export const arbitraryItem = (participantIds: string[]): fc.Arbitrary<Item> =>
     fc
       .record({
         payerId: fc.constantFrom(...participantIds),
-        participantIds: fc.subarray(participantIds),
+        participantIds: fc.shuffledSubarray(participantIds),
         extraCharges: fc.array(arbitraryExtraCharge(participantIds, amount), { maxLength: 3 }),
       })
-      .map((rest) => ({ id: 'placeholder', name: '항목', amount, ...rest })),
+      .map((rest) => ({ id: 'i0', name: '항목', amount, ...rest })),
   )
 
 export const arbitrarySettlement = (): fc.Arbitrary<Settlement> =>
