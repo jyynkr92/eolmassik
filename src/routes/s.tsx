@@ -11,9 +11,9 @@ import { SHARE_TEXT } from '@/constants/text/share';
  */
 const SharedPage = () => {
   return (
-    <main className="p-5">
+    <main className="p-6">
       <h1 className="text-on-surface-base text-2xl font-bold">{SHARE_TEXT.title}</h1>
-      <p className="text-on-surface-muted mt-1 text-sm">{SHARE_TEXT.description}</p>
+      <p className="text-on-surface-muted mt-2 text-sm">{SHARE_TEXT.description}</p>
     </main>
   );
 };

@@ -5,9 +5,9 @@ import { HOME_TEXT } from '@/constants/text/home';
 
 const HomePage = () => {
   return (
-    <main className="p-5">
+    <main className="p-6">
       <h1 className="text-on-surface-base text-2xl font-bold">{COMMON_TEXT.appName}</h1>
-      <p className="text-on-surface-muted mt-1 text-sm">{HOME_TEXT.tagline}</p>
+      <p className="text-on-surface-muted mt-2 text-sm">{HOME_TEXT.tagline}</p>
     </main>
   );
 };

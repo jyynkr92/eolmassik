@@ -6,6 +6,14 @@
     <title>얼마씩 — 가입 없이 링크 하나로 끝내는 1/N 정산</title>
     <meta name="description" content="여러 명이 함께 쓴 돈을 항목별로 입력하고, 누가 얼마씩 더 낼지 조정한 뒤, 카카오톡으로 공유하세요." />
     <meta name="theme-color" content="#ffffff" />
+    <!-- 본문 서체는 첫 화면에 바로 필요하다. CSS 를 파싱할 때까지 기다리지 않고 미리 받는다 -->
+    <link
+      rel="preload"
+      href="/fonts/SUIT-Variable.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
   </head>
   <body>
     <div id="root"></div>

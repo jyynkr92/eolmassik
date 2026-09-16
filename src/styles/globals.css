@@ -1,33 +1,90 @@
 @import "tailwindcss";
 @import "./theme.css";
 
+/**
+ * 본문 서체 — SUIT Variable. SIL OFL, `public/fonts/SUIT-LICENSE.txt`.
+ *
+ * 굵기별 파일을 따로 받지 않고 가변 폰트 하나(약 610KB)만 받는다. 400~700 을 쓰는데
+ * 정적 파일로 받으면 네 번 요청해야 하고 합계 용량도 더 커진다.
+ *
+ * `font-display: swap` 이라 폰트가 도착하기 전에도 글자가 먼저 보인다. 카톡 링크를
+ * 타고 들어오는 앱이라 첫 화면이 비어 있는 시간을 만들면 안 된다.
+ */
+@font-face {
+  font-family: "SUIT Variable";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("/fonts/SUIT-Variable.woff2") format("woff2-variations");
+}
+
 @custom-variant dark (&:where(.dark, .dark *));
+
+/**
+ * 누르는 순간의 반응(`pointer-fine:active:*`).
+ *
+ * 마우스가 있는 기기에서만 켠다. 터치에서는 `:active` 가 스크롤을 시작하는 손가락과
+ * 구분되지 않아, 목록을 훑어 내리기만 해도 지나간 행이 전부 눌린 것처럼 깜빡인다.
+ * 게다가 터치는 뗄 때까지 상태가 남아 반응이 늦은 것처럼 느껴진다.
+ *
+ * 조건을 Tailwind v4 의 `hover:` 와 똑같이 맞춰, hover 가 켜지는 기기와 active 가
+ * 켜지는 기기가 어긋나지 않게 했다.
+ */
+@custom-variant pointer-fine (@media (hover: hover) and (pointer: fine));
 
 /**
  * 토큰 → Tailwind 클래스 매핑.
  * bg-surface-base, text-on-surface-muted, border-outline-base 처럼 쓴다.
+ *
+ * 12단계 원시 값(`--accent-9` 등)은 일부러 노출하지 않는다. 컴포넌트가 단계 번호를
+ * 직접 고르기 시작하면 의미 토큰이 유명무실해진다.
  */
 @theme inline {
   --color-surface-base: var(--color-surface-base);
   --color-surface-dim: var(--color-surface-dim);
   --color-surface-raised: var(--color-surface-raised);
+  --color-surface-inset: var(--color-surface-inset);
 
   --color-on-surface-base: var(--color-on-surface-base);
   --color-on-surface-muted: var(--color-on-surface-muted);
+  --color-on-surface-faint: var(--color-on-surface-faint);
   --color-on-surface-inverse: var(--color-on-surface-inverse);
 
   --color-outline-base: var(--color-outline-base);
   --color-outline-strong: var(--color-outline-strong);
 
+  --color-accent-subtle: var(--color-accent-subtle);
+  --color-accent-subtle-hover: var(--color-accent-subtle-hover);
+  --color-accent-line: var(--color-accent-line);
   --color-accent-base: var(--color-accent-base);
+  --color-accent-solid: var(--color-accent-solid);
+  --color-accent-solid-hover: var(--color-accent-solid-hover);
+  --color-accent-text: var(--color-accent-text);
   --color-accent-on: var(--color-accent-on);
 
-  --color-credit-base: var(--color-credit-base);
-  --color-debit-base: var(--color-debit-base);
+  --color-danger-subtle: var(--color-danger-subtle);
+  --color-danger-subtle-hover: var(--color-danger-subtle-hover);
+  --color-danger-line: var(--color-danger-line);
+  --color-danger-base: var(--color-danger-base);
+  --color-danger-solid: var(--color-danger-solid);
+  --color-danger-text: var(--color-danger-text);
+  --color-danger-on: var(--color-danger-on);
+
+  --color-credit-subtle: var(--color-credit-subtle);
+  --color-credit-text: var(--color-credit-text);
+  --color-debit-subtle: var(--color-debit-subtle);
+  --color-debit-text: var(--color-debit-text);
+
+  --color-focus-ring: var(--color-focus-ring);
+
+  --animate-sheet-in: sheet-in 220ms cubic-bezier(0.32, 0.72, 0, 1);
+  --animate-sheet-out: sheet-out 180ms ease-in;
+  --animate-overlay-in: overlay-in 220ms ease-out;
+  --animate-overlay-out: overlay-out 180ms ease-in;
 
   --font-sans:
-    "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui,
-    "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    "SUIT Variable", -apple-system, BlinkMacSystemFont, system-ui, "Apple SD Gothic Neo",
+    "Malgun Gothic", sans-serif;
 }
 
 html {
@@ -42,4 +99,94 @@ body {
 /* 금액은 자릿수가 흔들리면 읽기 어려우므로 tabular numerals 를 쓴다 */
 .tabular {
   font-variant-numeric: tabular-nums;
+}
+
+/**
+ * 포커스 표시.
+ *
+ * 키보드 사용자에게만 보이도록 `:focus-visible` 을 쓰고, 링을 요소 바깥에 그려
+ * 배경색이 어떻든 대비를 유지한다. 컴포넌트마다 다시 적어야 할 이유가 없어
+ * 유틸 클래스 하나로 둔다.
+ */
+@utility focus-ring {
+  @apply outline-none;
+
+  &:focus-visible {
+    @apply outline-focus-ring outline-2 outline-offset-2;
+  }
+}
+
+/**
+ * 자식이 포커스를 받았을 때 바깥 박스에 링을 그린다.
+ *
+ * 입력칸이 단위 표시 같은 것과 함께 한 박스 안에 들어갈 때 쓴다. `:focus-within` 이
+ * 아니라 `:has(:focus-visible)` 인 이유는, 마우스로 클릭했을 때까지 링이 뜨면
+ * `focus-ring` 을 쓴 다른 입력칸과 동작이 달라지기 때문이다.
+ */
+@utility focus-ring-within {
+  &:has(:focus-visible) {
+    @apply outline-focus-ring outline-2 outline-offset-2;
+  }
+}
+
+/**
+ * 손가락으로 누르는 영역은 최소 44×44px 를 확보한다. (WCAG 2.5.5)
+ * 보이는 크기가 작아도 눌리는 범위는 넓게 가져간다.
+ */
+@utility tap-target {
+  @apply relative;
+
+  &::after {
+    @apply absolute left-1/2 top-1/2 h-11 w-11 -translate-x-1/2 -translate-y-1/2 content-[''];
+  }
+}
+
+/**
+ * 화면 맨 아래에 붙는 요소의 하단 여백.
+ * 아이폰 홈 인디케이터에 버튼이 가리지 않도록 안전 영역만큼은 반드시 띄운다.
+ */
+@utility safe-bottom {
+  padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    /* biome-ignore lint/complexity/noImportantStyles: 컴포넌트가 붙인 애니메이션을 사용자 설정이 이겨야 한다 */
+    animation-duration: 0.01ms !important;
+    /* biome-ignore lint/complexity/noImportantStyles: 위와 같은 이유다 */
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/**
+ * 바텀 시트 등장/퇴장.
+ *
+ * Radix 는 열림·닫힘 상태를 `data-state` 로 알려준다. 닫힘 애니메이션이 끝날 때까지
+ * DOM 을 유지해 주므로 퇴장 모션을 여기서 그릴 수 있다.
+ * `prefers-reduced-motion` 은 위에서 일괄로 잘라낸다.
+ */
+@keyframes sheet-in {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes sheet-out {
+  to {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes overlay-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes overlay-out {
+  to {
+    opacity: 0;
+  }
 }
