@@ -133,6 +133,9 @@
   --color-danger-base: var(--danger-9);
   --color-danger-text: var(--danger-11);
 
+  /* 시트·모달 뒤를 덮는 막. 양쪽 테마 모두 어두워지는 쪽이라 sand 스케일을 쓰지 않는다 */
+  --color-scrim: rgb(33 32 28 / 0.4);
+
   /* 금액 부호 */
   --color-credit-subtle: var(--credit-3);
   --color-credit-text: var(--credit-11);
@@ -159,6 +162,9 @@
 
 /* 어두운 배경에서는 반대로 밝은 쪽이 채움이 되고 글자가 어두워진다. */
 .dark {
+  /* 배경이 이미 어두워 0.4 로는 시트와 뒤 화면이 분리되지 않는다 */
+  --color-scrim: rgb(0 0 0 / 0.6);
+
   --color-accent-solid: var(--accent-11);
   --color-accent-solid-hover: var(--accent-12);
   --color-accent-on: var(--accent-2);

@@ -39,6 +39,7 @@ const TOKEN_COLORS = [
   'debit-subtle',
   'debit-text',
   'focus-ring',
+  'scrim',
 ];
 
 const twMerge = extendTailwindMerge({
