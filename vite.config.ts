@@ -17,7 +17,9 @@ export default defineConfig({
   },
   test: {
     globals: true,
-    environment: 'node',
+    // 컴포넌트 테스트가 DOM 을 필요로 한다. 계산 로직 테스트도 같은 환경에서 잘 돈다
+    environment: 'jsdom',
+    setupFiles: ['./src/test-setup.ts'],
     // .test.tsx 를 빠뜨리면 컴포넌트 테스트가 CI 에서 조용히 건너뛰어진다.
     include: ['src/**/*.test.{ts,tsx}'],
   },
