@@ -3,7 +3,22 @@ import { persist } from 'zustand/middleware';
 
 import { DEFAULT_OPTIONS } from '@/constants/settlement';
 import { createUuid } from '@/lib/uuid';
-import type { Options, Settlement } from '@/types/settlement';
+import type { ExtraCharge, Item, Options, Participant, Settlement } from '@/types/settlement';
+
+import {
+  addItemTo,
+  addParticipantTo,
+  removeExtraChargeFrom,
+  removeItemFrom,
+  removeParticipantFrom,
+  setDefaultPayerIdIn,
+  setExtraChargeIn,
+  setOptionsIn,
+  setTitleIn,
+  toggleItemParticipantIn,
+  updateItemIn,
+  updateParticipantIn,
+} from './settlement-actions';
 
 /**
  * 단일 Settlement 객체만 다루므로 전역 스토어 하나로 충분하다.
@@ -13,7 +28,26 @@ import type { Options, Settlement } from '@/types/settlement';
  */
 type SettlementState = {
   settlement: Settlement;
+
+  setTitle: (title: string) => void;
+  setDefaultPayerId: (participantId: string | null) => void;
+  setOptions: (patch: Partial<Options>) => void;
+
+  addParticipant: (name: string) => void;
+  updateParticipant: (participantId: string, patch: Partial<Omit<Participant, 'id'>>) => void;
+  removeParticipant: (participantId: string) => void;
+
+  addItem: (name?: string) => void;
+  updateItem: (itemId: string, patch: Partial<Omit<Item, 'id'>>) => void;
+  removeItem: (itemId: string) => void;
+
+  toggleItemParticipant: (itemId: string, participantId: string) => void;
+  setExtraCharge: (itemId: string, charge: ExtraCharge) => void;
+  removeExtraCharge: (itemId: string, participantId: string) => void;
+
   reset: () => void;
+  /** 공유받은 정산을 복제해서 편집 모드로 넘어올 때 쓴다. 기획설계 5.6 */
+  replaceSettlement: (settlement: Settlement) => void;
 };
 
 const createEmptySettlement = (): Settlement => ({
@@ -42,10 +76,49 @@ const migrateSettlement = (persisted: unknown): SettlementState | undefined => {
 
 export const useSettlementStore = create<SettlementState>()(
   persist(
-    (set) => ({
-      settlement: createEmptySettlement(),
-      reset: () => set({ settlement: createEmptySettlement() }),
-    }),
+    (set) => {
+      /**
+       * 모든 액션이 같은 형태라 변환 함수를 감싸기만 한다.
+       *
+       * 변환 결과가 원본과 같은 참조면 이전 state 를 그대로 돌려준다. 새 객체를 넘기면
+       * zustand 의 `Object.is` 검사를 통과해 구독자가 전부 깨어나고, persist 미들웨어도
+       * 구독자라 아무것도 안 바뀐 액션마다 localStorage 에 동기 쓰기가 일어난다.
+       */
+      const apply =
+        <Args extends unknown[]>(
+          transform: (settlement: Settlement, ...args: Args) => Settlement,
+        ) =>
+        (...args: Args) =>
+          set((state) => {
+            const settlement = transform(state.settlement, ...args);
+            if (settlement === state.settlement) return state;
+
+            return { settlement };
+          });
+
+      return {
+        settlement: createEmptySettlement(),
+
+        setTitle: apply(setTitleIn),
+        setDefaultPayerId: apply(setDefaultPayerIdIn),
+        setOptions: apply(setOptionsIn),
+
+        addParticipant: apply(addParticipantTo),
+        updateParticipant: apply(updateParticipantIn),
+        removeParticipant: apply(removeParticipantFrom),
+
+        addItem: apply(addItemTo),
+        updateItem: apply(updateItemIn),
+        removeItem: apply(removeItemFrom),
+
+        toggleItemParticipant: apply(toggleItemParticipantIn),
+        setExtraCharge: apply(setExtraChargeIn),
+        removeExtraCharge: apply(removeExtraChargeFrom),
+
+        reset: () => set({ settlement: createEmptySettlement() }),
+        replaceSettlement: (settlement: Settlement) => set({ settlement }),
+      };
+    },
     {
       name: 'eolmassik:draft',
       // Options 에 fullChargeSplit 이 추가되면서 스키마가 바뀌었다.
