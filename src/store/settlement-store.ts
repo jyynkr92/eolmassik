@@ -77,13 +77,24 @@ const migrateSettlement = (persisted: unknown): SettlementState | undefined => {
 export const useSettlementStore = create<SettlementState>()(
   persist(
     (set) => {
-      /** 모든 액션이 같은 형태라 변환 함수를 감싸기만 한다. */
+      /**
+       * 모든 액션이 같은 형태라 변환 함수를 감싸기만 한다.
+       *
+       * 변환 결과가 원본과 같은 참조면 이전 state 를 그대로 돌려준다. 새 객체를 넘기면
+       * zustand 의 `Object.is` 검사를 통과해 구독자가 전부 깨어나고, persist 미들웨어도
+       * 구독자라 아무것도 안 바뀐 액션마다 localStorage 에 동기 쓰기가 일어난다.
+       */
       const apply =
         <Args extends unknown[]>(
           transform: (settlement: Settlement, ...args: Args) => Settlement,
         ) =>
         (...args: Args) =>
-          set((state) => ({ settlement: transform(state.settlement, ...args) }));
+          set((state) => {
+            const settlement = transform(state.settlement, ...args);
+            if (settlement === state.settlement) return state;
+
+            return { settlement };
+          });
 
       return {
         settlement: createEmptySettlement(),

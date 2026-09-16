@@ -11,6 +11,19 @@
 import { createUuid } from '@/lib/uuid';
 import type { ExtraCharge, Item, Options, Participant, Settlement } from '@/types/settlement';
 
+/**
+ * patch 에서 값이 `undefined` 인 키를 떨군다.
+ *
+ * `exactOptionalPropertyTypes` 가 꺼져 있어 `{ amount: undefined }` 가 타입 검사를 통과한다.
+ * 그대로 spread 하면 `item.amount` 가 `undefined` 가 되고, `calculateSettlement` 의
+ * `Math.max(0, item.amount)` 가 `NaN` 을 뱉어 총액과 모든 송금액으로 번진다.
+ * 금액 입력칸을 비우면 바로 닿는 경로라 여기서 막는다.
+ */
+const definedEntriesOf = <T extends object>(patch: T): Partial<T> =>
+  Object.fromEntries(
+    Object.entries(patch).filter(([, value]) => value !== undefined),
+  ) as Partial<T>;
+
 /** 항목 하나만 바꾼다. 해당 id 가 없으면 원본을 그대로 돌려준다. */
 const replaceItem = (
   settlement: Settlement,
@@ -39,7 +52,7 @@ export const setDefaultPayerIdIn = (
 
 export const setOptionsIn = (settlement: Settlement, patch: Partial<Options>): Settlement => ({
   ...settlement,
-  options: { ...settlement.options, ...patch },
+  options: { ...settlement.options, ...definedEntriesOf(patch) },
 });
 
 /**
@@ -66,7 +79,7 @@ export const updateParticipantIn = (
   if (!target) return settlement;
 
   const participants = settlement.participants.map((participant) =>
-    participant.id === participantId ? { ...participant, ...patch } : participant,
+    participant.id === participantId ? { ...participant, ...definedEntriesOf(patch) } : participant,
   );
   return { ...settlement, participants };
 };
@@ -78,8 +91,9 @@ export const updateParticipantIn = (
  * 남으면 없는 사람에게 부담액이 잡히거나, 결제자가 참여자 목록에 없어서 항목 전체가
  * `invalidItemIds` 로 빠진다.
  *
- * 결제자 자리는 새 기본 결제자로 메운다. 남은 참여자가 없으면 빈 문자열이 되고, 그 항목은
- * 결과 화면에서 "결제자를 정해주세요" 로 드러난다. 조용히 버리지 않는다.
+ * 결제자 자리는 **비운다**. 다른 사람으로 자동 대체하면 그 사람이 내지 않은 금액을 낸 것으로
+ * 기록되어, 받을 돈이 조용히 부풀고 송금 방향까지 바뀐다. 비워두면 그 항목은
+ * `invalidItemIds` 로 빠져 결과 화면이 결제자 재지정을 유도한다.
  */
 export const removeParticipantFrom = (
   settlement: Settlement,
@@ -95,12 +109,28 @@ export const removeParticipantFrom = (
       ? (participants[0]?.id ?? null)
       : settlement.defaultPayerId;
 
-  const items = settlement.items.map((item) => ({
-    ...item,
-    payerId: item.payerId === participantId ? (defaultPayerId ?? '') : item.payerId,
-    participantIds: item.participantIds.filter((id) => id !== participantId),
-    extraCharges: item.extraCharges.filter((charge) => charge.participantId !== participantId),
-  }));
+  // 이 사람을 가리키지 않던 항목은 원본 참조를 유지한다. 항목 단위 selector 를 쓰는 화면에서
+  // 참여자 한 명을 지웠다고 모든 항목 행이 리렌더되지 않게 한다.
+  const items = settlement.items.map((item) => {
+    const participantIds = item.participantIds.filter((id) => id !== participantId);
+    const extraCharges = item.extraCharges.filter(
+      (charge) => charge.participantId !== participantId,
+    );
+    const isPayer = item.payerId === participantId;
+
+    const isUnchanged =
+      !isPayer &&
+      participantIds.length === item.participantIds.length &&
+      extraCharges.length === item.extraCharges.length;
+    if (isUnchanged) return item;
+
+    return {
+      ...item,
+      payerId: isPayer ? '' : item.payerId,
+      participantIds,
+      extraCharges,
+    };
+  });
 
   return { ...settlement, participants, items, defaultPayerId };
 };
@@ -125,7 +155,8 @@ export const updateItemIn = (
   settlement: Settlement,
   itemId: string,
   patch: Partial<Omit<Item, 'id'>>,
-): Settlement => replaceItem(settlement, itemId, (item) => ({ ...item, ...patch }));
+): Settlement =>
+  replaceItem(settlement, itemId, (item) => ({ ...item, ...definedEntriesOf(patch) }));
 
 export const removeItemFrom = (settlement: Settlement, itemId: string): Settlement => {
   const items = settlement.items.filter((item) => item.id !== itemId);

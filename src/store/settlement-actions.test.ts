@@ -91,8 +91,24 @@ describe('removeParticipantFrom', () => {
     expect(removed.participants.map((participant) => participant.id)).toEqual([eunjeong, cheoljun]);
     expect(item.participantIds).toEqual([eunjeong, cheoljun]);
     expect(item.extraCharges).toEqual([]);
-    // 결제자 자리는 기본 결제자로 메운다.
-    expect(item.payerId).toBe(eunjeong);
+    // 결제자 자리는 비운다. 다른 사람으로 대체하면 내지 않은 돈을 낸 것으로 기록된다.
+    expect(item.payerId).toBe('');
+  });
+
+  it('지운 사람과 무관한 항목은 원본 참조를 유지한다', () => {
+    const { settlement, ids } = withParticipants(['은정이네', '민수']);
+    const [eunjeong, minsu] = ids;
+
+    const withItem = addItemTo(settlement, '고기');
+    const itemId = lastItem(withItem).id;
+    // 민수를 부담자에서 빼두면 이 항목은 민수를 전혀 참조하지 않는다.
+    const excluded = toggleItemParticipantIn(withItem, itemId, minsu ?? '');
+    const untouched = lastItem(excluded);
+
+    const removed = removeParticipantFrom(excluded, minsu ?? '');
+
+    expect(lastItem(removed)).toBe(untouched);
+    expect(untouched.payerId).toBe(eunjeong);
   });
 
   it('기본 결제자를 지우면 남은 첫 참여자로 넘긴다', () => {
@@ -205,5 +221,29 @@ describe('setOptionsIn', () => {
     const settlement = setOptionsIn(emptySettlement(), { rounding: 'ceil100' });
 
     expect(settlement.options).toEqual({ ...DEFAULT_OPTIONS, rounding: 'ceil100' });
+  });
+});
+
+describe('patch 의 undefined 처리', () => {
+  it('금액을 undefined 로 덮어쓰지 않는다', () => {
+    const { settlement } = withParticipants(['은정이네']);
+    const withItem = addItemTo(settlement, '고기');
+    const itemId = lastItem(withItem).id;
+
+    const priced = updateItemIn(withItem, itemId, { amount: 32000 });
+    const cleared = updateItemIn(priced, itemId, { amount: undefined });
+
+    // undefined 가 들어가면 calculateSettlement 의 Math.max(0, amount) 가 NaN 이 된다.
+    expect(lastItem(cleared).amount).toBe(32000);
+  });
+
+  it('headcount 와 options 도 undefined 를 무시한다', () => {
+    const { settlement, ids } = withParticipants(['은정이네']);
+    const updated = updateParticipantIn(settlement, ids[0] ?? '', { headcount: undefined });
+
+    expect(updated.participants[0]?.headcount).toBe(1);
+    expect(setOptionsIn(settlement, { rounding: undefined }).options.rounding).toBe(
+      DEFAULT_OPTIONS.rounding,
+    );
   });
 });
