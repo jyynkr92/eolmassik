@@ -2,7 +2,7 @@ import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
 import { cn } from '@/lib/cn';
 
-type ButtonVariant = 'solid' | 'soft' | 'outline' | 'ghost' | 'danger';
+type ButtonVariant = 'solid' | 'soft' | 'outline' | 'ghost' | 'danger' | 'danger-solid';
 type ButtonSize = 'md' | 'lg';
 
 interface BaseProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -39,6 +39,8 @@ const VARIANT_CLASS: Record<ButtonVariant, string> = {
   ghost:
     'text-on-surface-muted hover:bg-surface-dim hover:text-on-surface-base pointer-fine:active:bg-surface-inset',
   danger: 'bg-danger-subtle text-danger-text hover:bg-danger-subtle-hover',
+  // 되돌릴 수 없는 동작의 확인 버튼. 평소에는 soft 인 danger 를 쓴다
+  'danger-solid': 'bg-danger-solid text-danger-on hover:bg-danger-base',
 };
 
 /** 높이는 손가락으로 누를 수 있는 크기에서 시작한다. `md` 40px, `lg` 48px. */
@@ -47,9 +49,15 @@ const SIZE_CLASS: Record<ButtonSize, string> = {
   lg: 'h-12 gap-2 px-6 text-base',
 };
 
-/** 아이콘만 있으면 정사각형이다. `md` 는 40px 라 `tap-target` 으로 44px 를 채운다. */
+/**
+ * 아이콘만 있으면 정사각형이다. `md` 도 44px 로 둔다. (WCAG 2.5.5)
+ *
+ * `tap-target` 으로 40px 버튼에 44px 오버레이를 씌우는 방법도 있지만, 오버레이가
+ * 사방 2px 씩 버튼 밖으로 나가 옆에 붙은 요소의 가장자리 클릭을 가로챈다.
+ * 눌리는 영역과 보이는 영역을 같게 두는 쪽이 예측 가능하다.
+ */
 const ICON_ONLY_SIZE_CLASS: Record<ButtonSize, string> = {
-  md: 'tap-target size-10',
+  md: 'size-11',
   lg: 'size-12',
 };
 

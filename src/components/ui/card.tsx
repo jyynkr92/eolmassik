@@ -2,9 +2,16 @@ import { type ReactNode, useId } from 'react';
 
 import { cn } from '@/lib/cn';
 
+type HeadingLevel = 2 | 3;
+
 interface Props {
   /** 섹션 제목. 넘기면 `aria-labelledby` 로 섹션과 묶인다. */
   title?: string;
+  /**
+   * 제목의 헤딩 레벨. 기본은 페이지 `h1` 바로 아래인 2다.
+   * 시트 안이나 카드 안에 다시 놓일 때 3으로 내려 헤딩 순서가 어긋나지 않게 한다.
+   */
+  headingLevel?: HeadingLevel;
   /** 제목 오른쪽 영역. "추가" 버튼 자리다. */
   action?: ReactNode;
   className?: string;
@@ -17,8 +24,9 @@ interface Props {
  * 그림자 대신 얇은 테두리로 층을 만든다. 모바일에서 카드가 세로로 이어질 때
  * 그림자가 겹치면 화면이 탁해 보인다.
  */
-const Card = ({ title, action, className, children }: Props) => {
+const Card = ({ title, headingLevel = 2, action, className, children }: Props) => {
   const titleId = useId();
+  const Heading = `h${headingLevel}` as const;
 
   return (
     <section
@@ -30,9 +38,9 @@ const Card = ({ title, action, className, children }: Props) => {
     >
       {title && (
         <header className="flex items-center justify-between gap-2">
-          <h2 id={titleId} className="text-on-surface-base text-base font-semibold">
+          <Heading id={titleId} className="text-on-surface-base text-base font-semibold">
             {title}
-          </h2>
+          </Heading>
           {action}
         </header>
       )}

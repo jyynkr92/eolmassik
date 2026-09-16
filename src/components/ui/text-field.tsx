@@ -25,14 +25,16 @@ const TextField = ({
   description,
   error,
   className,
+  'aria-describedby': describedByProp,
   ...props
 }: Props) => {
   const inputId = useId();
   const descriptionId = `${inputId}-description`;
   const errorId = `${inputId}-error`;
 
-  const describedBy = [description ? descriptionId : null, error ? errorId : null]
-    .filter((id) => id !== null)
+  // 호출부가 넘긴 값도 함께 묶는다. 덮어쓰면 설명·오류 연결이 조용히 사라진다
+  const describedBy = [description ? descriptionId : null, error ? errorId : null, describedByProp]
+    .filter((id) => id !== null && id !== undefined)
     .join(' ');
 
   return (

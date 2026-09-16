@@ -3,7 +3,14 @@ import { describe, expect, it } from 'vitest';
 
 import { MAX_AMOUNT } from '@/constants/settlement';
 
-import { formatAmount, formatWon, hasDigit, parseAmount } from './format';
+import {
+  countDigits,
+  formatAmount,
+  formatWon,
+  hasDigit,
+  isAmountClamped,
+  parseAmount,
+} from './format';
 
 describe('formatAmount', () => {
   it('세 자리마다 쉼표를 넣는다', () => {
@@ -84,5 +91,41 @@ describe('hasDigit', () => {
     // 정규식에 g 플래그가 섞이면 lastIndex 가 남아 두 번째 호출부터 결과가 뒤집힌다
     expect(hasDigit('1')).toBe(true);
     expect(hasDigit('1')).toBe(true);
+  });
+});
+
+describe('isAmountClamped', () => {
+  it('상한을 넘는 입력이면 참이다', () => {
+    expect(isAmountClamped('9999999999')).toBe(true);
+    expect(isAmountClamped(`${MAX_AMOUNT + 1}`)).toBe(true);
+  });
+
+  it('상한 이하면 거짓이다', () => {
+    expect(isAmountClamped(`${MAX_AMOUNT}`)).toBe(false);
+    expect(isAmountClamped('32,000')).toBe(false);
+  });
+
+  it('숫자가 없으면 거짓이다', () => {
+    expect(isAmountClamped('')).toBe(false);
+    expect(isAmountClamped('원')).toBe(false);
+  });
+
+  it('참일 때만 parseAmount 가 입력과 다른 값을 돌려준다', () => {
+    fc.assert(
+      fc.property(fc.string(), (input) => {
+        const digits = input.replace(/\D/g, '');
+        if (digits === '') return;
+
+        expect(isAmountClamped(input)).toBe(parseAmount(input) !== Number(digits));
+      }),
+    );
+  });
+});
+
+describe('countDigits', () => {
+  it('숫자가 아닌 문자는 세지 않는다', () => {
+    expect(countDigits('32,000원')).toBe(5);
+    expect(countDigits('')).toBe(0);
+    expect(countDigits('원')).toBe(0);
   });
 });

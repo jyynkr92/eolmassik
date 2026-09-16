@@ -31,5 +31,21 @@ export const parseAmount = (input: string): number => {
   return Math.min(Number(digits), MAX_AMOUNT);
 };
 
+/** 문자열에 들어 있는 숫자의 개수. 캐럿 위치를 글자 수 대신 이걸로 기억한다. */
+export const countDigits = (input: string): number => input.replace(NON_DIGIT_PATTERN, '').length;
+
 /** 문자열에 숫자가 하나라도 들어 있는지. */
 export const hasDigit = (input: string): boolean => DIGIT_PATTERN.test(input);
+
+/**
+ * 입력이 금액 상한을 넘겨 잘렸는지.
+ *
+ * `parseAmount` 는 상한을 넘는 입력을 조용히 자른다. 사용자 입장에서는 키가 안 먹는
+ * 것처럼 보이므로, 잘렸다는 사실을 화면에서 알려줄 수 있도록 판단을 따로 내보낸다.
+ */
+export const isAmountClamped = (input: string): boolean => {
+  const digits = input.replace(NON_DIGIT_PATTERN, '');
+  if (digits === '') return false;
+
+  return Number(digits) > MAX_AMOUNT;
+};

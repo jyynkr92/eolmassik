@@ -1,6 +1,5 @@
 import { Check } from 'lucide-react';
 import { Checkbox } from 'radix-ui';
-import type { ReactNode } from 'react';
 
 import { cn } from '@/lib/cn';
 
@@ -8,9 +7,16 @@ interface Props {
   isChecked: boolean;
   onCheckedChange: (isChecked: boolean) => void;
   label: string;
-  /** 이름 오른쪽 보조 정보. 부담액 미리보기처럼 쓴다. */
-  trailing?: ReactNode;
+  /**
+   * 이름 오른쪽 보조 정보. 부담액 미리보기처럼 쓴다.
+   *
+   * 텍스트만 받는다. 이 자리는 `role="checkbox"` 버튼 **안**이라서 버튼이나 링크를 넣으면
+   * 중첩 인터랙티브 요소가 되어 키보드 동작이 깨진다. 여기 적힌 값은 체크박스의
+   * 접근 가능한 이름에도 함께 읽힌다.
+   */
+  trailing?: string | number;
   isDisabled?: boolean;
+  className?: string;
 }
 
 /**
@@ -20,7 +26,14 @@ interface Props {
  * `Checkbox.Root` 를 라벨로 감싸는 대신 Radix 가 만들어 주는 버튼 자체를 줄 크기로
  * 키워, 눌리는 영역과 포커스 영역이 어긋나지 않게 했다.
  */
-const CheckRow = ({ isChecked, onCheckedChange, label, trailing, isDisabled }: Props) => {
+const CheckRow = ({
+  isChecked,
+  onCheckedChange,
+  label,
+  trailing,
+  isDisabled,
+  className,
+}: Props) => {
   return (
     <Checkbox.Root
       checked={isChecked}
@@ -31,6 +44,7 @@ const CheckRow = ({ isChecked, onCheckedChange, label, trailing, isDisabled }: P
         // 행은 줄이지 않는다. 목록 안에서 한 줄만 작아지면 나머지가 출렁이는 것처럼 보인다
         'hover:bg-surface-dim pointer-fine:active:bg-surface-inset',
         'disabled:pointer-events-none disabled:opacity-40',
+        className,
       )}
     >
       <span
@@ -46,7 +60,9 @@ const CheckRow = ({ isChecked, onCheckedChange, label, trailing, isDisabled }: P
       </span>
 
       <span className="text-on-surface-base flex-1 text-sm font-medium">{label}</span>
-      {trailing}
+      {trailing !== undefined && (
+        <span className="tabular text-on-surface-muted text-sm">{trailing}</span>
+      )}
     </Checkbox.Root>
   );
 };

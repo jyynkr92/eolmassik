@@ -27,7 +27,7 @@ const Sheet = ({ isOpen, onOpenChange, title, description, children }: Props) =>
   return (
     <Dialog.Root open={isOpen} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="data-[state=open]:animate-overlay-in data-[state=closed]:animate-overlay-out fixed inset-0 bg-black/40" />
+        <Dialog.Overlay className="data-[state=open]:animate-overlay-in data-[state=closed]:animate-overlay-out bg-scrim fixed inset-0" />
 
         <Dialog.Content className="bg-surface-base data-[state=open]:animate-sheet-in data-[state=closed]:animate-sheet-out safe-bottom fixed inset-x-0 bottom-0 mx-auto flex max-h-[85dvh] w-full max-w-md flex-col gap-4 rounded-t-2xl px-4 pt-4">
           <header className="flex items-start justify-between gap-4">
