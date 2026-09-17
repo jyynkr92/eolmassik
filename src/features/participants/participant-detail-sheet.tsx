@@ -17,8 +17,7 @@ interface Props {
   participants: Participant[];
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
-  onRename: (participantId: string, name: string) => void;
-  onHeadcountChange: (participantId: string, headcount: number) => void;
+  onSave: (participantId: string, patch: Partial<Omit<Participant, 'id'>>) => void;
   onRemove: (participantId: string) => void;
 }
 
@@ -32,17 +31,20 @@ interface Props {
  * 바뀌고, 그 사람이 들어간 항목의 부담자 목록과 추가 부담이 함께 날아간다. id 를 지킨 채
  * 이름만 바꿀 길이 반드시 있어야 한다.
  *
- * 이름은 시트를 닫을 때 한 번만 내보낸다. 키를 칠 때마다 내보내면 "지영" 을 "민수" 로 고치는
- * 도중의 "민" 까지 저장되고, 마지막 "민수" 가 중복으로 걸리면 반쯤 지워진 이름이 그대로
- * 남는다. 인원은 잘못된 값이 나올 수 없어 누를 때 바로 내보낸다.
+ * 저장은 닫을 때 한 번이다. 취소 수단이 없어 닫기가 곧 확정이고, 저장 지점이 하나여야
+ * "어느 필드는 언제 저장되나"를 다시 설명하지 않아도 된다. 키를 칠 때마다 내보내면
+ * "지영" 을 "민수" 로 고치는 도중의 "민" 까지 저장되기도 한다.
+ *
+ * 다만 유효성은 필드마다 따로다. 이름이 비어 있어 버려지더라도 인원 변경은 저장한다.
+ *
+ * 입력 상태는 이 컴포넌트가 들고 있고, 호출부가 열 때마다 새로 마운트해 초기화한다.
  */
 const ParticipantDetailSheet = ({
   participant,
   participants,
   isOpen,
   onOpenChange,
-  onRename,
-  onHeadcountChange,
+  onSave,
   onRemove,
 }: Props) => {
   const [name, setName] = useState(participant.name);
@@ -52,10 +54,19 @@ const ParticipantDetailSheet = ({
   const errorMessage = check.isValid ? undefined : PARTICIPANTS_TEXT.nameError[check.error];
 
   const handleOpenChange = (nextIsOpen: boolean) => {
-    // 닫는 순간에만 저장한다. 이름이 유효하지 않으면 고치기 전 이름을 지킨다
-    if (!nextIsOpen && check.isValid) onRename(participant.id, check.name);
+    if (nextIsOpen) {
+      onOpenChange(true);
+      return;
+    }
 
-    onOpenChange(nextIsOpen);
+    const patch: Partial<Omit<Participant, 'id'>> = {};
+    if (check.isValid && check.name !== participant.name) patch.name = check.name;
+    if (headcount !== participant.headcount) patch.headcount = headcount;
+
+    // 바뀐 게 없으면 내보내지 않는다. 스토어가 새 객체를 만들어 구독자를 전부 깨운다
+    if (Object.keys(patch).length > 0) onSave(participant.id, patch);
+
+    onOpenChange(false);
   };
 
   const handleHeadcountStep = (step: number) => {
@@ -63,10 +74,9 @@ const ParticipantDetailSheet = ({
     if (next < 1 || next > MAX_HEADCOUNT) return;
 
     setHeadcount(next);
-    onHeadcountChange(participant.id, next);
   };
 
-  // 지우고 닫는 길은 이름을 저장하지 않는다. 사라질 참여자의 이름을 쓸 이유가 없다
+  // 지우고 닫는 길은 저장을 건너뛴다. 사라질 참여자의 이름과 인원을 쓸 이유가 없다
   const handleRemove = () => {
     onRemove(participant.id);
     onOpenChange(false);
@@ -76,7 +86,7 @@ const ParticipantDetailSheet = ({
     <Sheet
       isOpen={isOpen}
       onOpenChange={handleOpenChange}
-      title={check.isValid ? check.name : participant.name}
+      title={DETAIL_TEXT.title(participant.name)}
       description={DETAIL_TEXT.description}
     >
       <div className="flex flex-col gap-6 pb-2">
@@ -128,7 +138,7 @@ const ParticipantDetailSheet = ({
               </Button>
             </div>
 
-            <p className="text-on-surface-faint text-xs">{DETAIL_TEXT.headcountHint}</p>
+            <p className="text-on-surface-muted text-xs">{DETAIL_TEXT.headcountHint}</p>
           </div>
         </fieldset>
 

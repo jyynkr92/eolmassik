@@ -22,6 +22,13 @@ export const PARTICIPANTS_TEXT = {
 
   /** 칩을 눌렀을 때 올라오는 상세 시트. */
   detail: {
+    /**
+     * 시트를 연 시점의 이름으로 고정한다.
+     *
+     * Dialog 의 제목은 곧 다이얼로그의 접근 가능한 이름이다. 입력에 맞춰 바꾸면 글자를
+     * 칠 때마다 스크린리더가 다이얼로그 이름을 다시 읽는다.
+     */
+    title: (name: string) => `${name} 수정`,
     description: '이름과 인원을 바꾸거나 삭제할 수 있어요',
     nameLabel: '이름',
 

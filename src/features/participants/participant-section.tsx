@@ -27,17 +27,19 @@ const ParticipantSection = () => {
   const [selected, setSelected] = useState<Participant | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
+  /**
+   * 시트를 연 횟수. 이것만 key 로 쓰면 열 때마다 새로 마운트된다.
+   *
+   * 닫아도 시트를 언마운트하지 않으므로, 참여자 id 를 key 로 쓰면 같은 칩을 다시 열 때
+   * 리마운트가 일어나지 않는다. 그러면 저장하지 않고 버린 편집이 시트 안에 그대로 남아
+   * 다음에 열 때 되살아난다.
+   */
+  const [openSeq, setOpenSeq] = useState(0);
+
   const handleChipClick = (participant: Participant) => {
     setSelected(participant);
+    setOpenSeq((seq) => seq + 1);
     setIsSheetOpen(true);
-  };
-
-  const handleRename = (participantId: string, name: string) => {
-    updateParticipant(participantId, { name });
-  };
-
-  const handleHeadcountChange = (participantId: string, headcount: number) => {
-    updateParticipant(participantId, { headcount });
   };
 
   const hasParticipants = participants.length > 0;
@@ -77,22 +79,20 @@ const ParticipantSection = () => {
             ))}
           </ul>
 
-          <p className="text-on-surface-faint text-xs">{PARTICIPANTS_TEXT.editHint}</p>
+          <p className="text-on-surface-muted text-xs">{PARTICIPANTS_TEXT.editHint}</p>
         </div>
       ) : (
         <p className="text-on-surface-muted py-2 text-sm">{PARTICIPANTS_TEXT.empty}</p>
       )}
 
       {selected && (
-        // key 로 참여자마다 새로 마운트해 시트 안의 입력 상태를 초기화한다
         <ParticipantDetailSheet
-          key={selected.id}
+          key={openSeq}
           participant={selected}
           participants={participants}
           isOpen={isSheetOpen}
           onOpenChange={setIsSheetOpen}
-          onRename={handleRename}
-          onHeadcountChange={handleHeadcountChange}
+          onSave={updateParticipant}
           onRemove={removeParticipant}
         />
       )}
