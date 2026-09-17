@@ -1,8 +1,8 @@
-import { type InputHTMLAttributes, useId } from 'react';
+import { type ComponentPropsWithRef, useId } from 'react';
 
 import { cn } from '@/lib/cn';
 
-interface Props extends Omit<InputHTMLAttributes<HTMLInputElement>, 'id'> {
+interface Props extends Omit<ComponentPropsWithRef<'input'>, 'id'> {
   label: string;
   /** 라벨을 화면에서 숨긴다. 자리가 없는 행 안에서도 스크린리더용 이름은 남긴다. */
   isLabelHidden?: boolean;
