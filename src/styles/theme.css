@@ -102,10 +102,8 @@
  */
 :root,
 .dark {
-  /* surface */
-  --color-surface-base: var(--sand-1);
+  /* surface — base/raised 는 테마마다 뒤집히므로 아래에서 따로 잡는다 */
   --color-surface-dim: var(--sand-3);
-  --color-surface-raised: var(--sand-2);
   --color-surface-inset: var(--sand-4);
 
   /* on-surface (텍스트) */
@@ -152,6 +150,16 @@
  * 곳(포커스 링, 선택 표시)에만 쓴다.
  */
 :root {
+  /**
+   * 바탕은 accent 스케일의 2단계, 카드는 중립의 1단계다.
+   *
+   * 순백 바탕에 회색 카드를 올리면 카드가 바탕보다 어두워 "떠 있다"는 느낌이 뒤집힌다.
+   * 바탕에 따뜻한 기운을 넣고 카드를 밝게 두면 층이 제대로 서고, 황토빛 accent 와도
+   * 같은 계열로 읽힌다.
+   */
+  --color-surface-base: var(--accent-2);
+  --color-surface-raised: var(--sand-1);
+
   --color-accent-solid: var(--accent-11);
   --color-accent-solid-hover: var(--accent-12);
   --color-accent-on: #ffffff;
@@ -162,6 +170,10 @@
 
 /* 어두운 배경에서는 반대로 밝은 쪽이 채움이 되고 글자가 어두워진다. */
 .dark {
+  /* 어두울 때는 반대다. 바탕이 가장 어둡고 카드가 그 위로 밝게 뜬다 */
+  --color-surface-base: var(--sand-1);
+  --color-surface-raised: var(--accent-2);
+
   /* 배경이 이미 어두워 0.4 로는 시트와 뒤 화면이 분리되지 않는다 */
   --color-scrim: rgb(0 0 0 / 0.6);
 
