@@ -1,8 +1,8 @@
-import { type InputHTMLAttributes, useId } from 'react';
+import { type ComponentPropsWithRef, useId } from 'react';
 
 import { cn } from '@/lib/cn';
 
-interface Props extends Omit<InputHTMLAttributes<HTMLInputElement>, 'id'> {
+interface Props extends Omit<ComponentPropsWithRef<'input'>, 'id'> {
   label: string;
   /** 라벨을 화면에서 숨긴다. 자리가 없는 행 안에서도 스크린리더용 이름은 남긴다. */
   isLabelHidden?: boolean;
@@ -14,6 +14,9 @@ interface Props extends Omit<InputHTMLAttributes<HTMLInputElement>, 'id'> {
 
 /**
  * 한 줄 텍스트 입력.
+ *
+ * `className` 은 루트에 붙는다. Button·Card·Chip 과 같은 규칙이라, 폭을 늘리려고 호출부에서
+ * 한 겹 더 감쌀 필요가 없다.
  *
  * 라벨·설명·오류를 `id` 로 묶는 일은 매번 똑같고 매번 빠뜨리기 쉬워서 여기서 처리한다.
  * placeholder 를 라벨 대신 쓰지 않는다. 입력을 시작하는 순간 사라져서 무엇을 적는
@@ -38,7 +41,7 @@ const TextField = ({
     .join(' ');
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className={cn('flex flex-col gap-2', className)}>
       <label
         htmlFor={inputId}
         className={cn('text-on-surface-muted text-sm font-medium', isLabelHidden && 'sr-only')}
@@ -57,13 +60,12 @@ const TextField = ({
           'text-base',
           'disabled:bg-surface-dim disabled:text-on-surface-faint',
           error && 'border-danger-line',
-          className,
         )}
         {...props}
       />
 
       {description && (
-        <p id={descriptionId} className="text-on-surface-faint text-xs">
+        <p id={descriptionId} className="text-on-surface-muted text-xs">
           {description}
         </p>
       )}

@@ -104,7 +104,7 @@ const AmountField = ({
     .join(' ');
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className={cn('flex flex-col gap-2', className)}>
       <label
         htmlFor={inputId}
         className={cn('text-on-surface-muted text-sm font-medium', isLabelHidden && 'sr-only')}
@@ -112,12 +112,7 @@ const AmountField = ({
         {label}
       </label>
 
-      <div
-        className={cn(
-          'bg-surface-raised border-outline-base focus-ring-within flex h-12 items-center rounded-xl border pr-4',
-          className,
-        )}
-      >
+      <div className="bg-surface-raised border-outline-base focus-ring-within flex h-12 items-center rounded-xl border pr-4">
         <input
           ref={inputRef}
           id={inputId}
