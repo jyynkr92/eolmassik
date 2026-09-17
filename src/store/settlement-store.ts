@@ -5,6 +5,15 @@ import { DEFAULT_OPTIONS } from '@/constants/settlement';
 import { createUuid } from '@/lib/uuid';
 import type { ExtraCharge, Item, Options, Participant, Settlement } from '@/types/settlement';
 
+/**
+ * Settlement 전역 스토어.
+ *
+ * 액션은 state 안에 `actions` 하나로 묶는다. 이 객체는 스토어가 만들어질 때 한 번
+ * 만들어지고 다시 바뀌지 않아, 컴포넌트가 통째로 꺼내도 참조가 그대로라 리렌더를
+ * 유발하지 않는다. 액션마다 selector 를 하나씩 쓰던 것보다 호출부가 짧아지고,
+ * "무엇이 값이고 무엇이 동작인지"가 타입에서 바로 갈린다.
+ */
+
 import {
   addItemTo,
   addParticipantTo,
@@ -20,14 +29,7 @@ import {
   updateParticipantIn,
 } from './settlement-actions';
 
-/**
- * 액션을 state 안에 `actions` 하나로 묶는다.
- *
- * 이 객체는 스토어가 만들어질 때 한 번 만들어지고 다시 바뀌지 않는다. 덕분에 컴포넌트가
- * `useSettlementStore((state) => state.actions)` 로 통째로 꺼내도 참조가 그대로라
- * 리렌더를 유발하지 않는다. 액션마다 selector 를 하나씩 쓰던 것보다 호출부가 짧아지고,
- * "무엇이 값이고 무엇이 동작인지"가 타입에서 바로 갈린다.
- */
+/** 정산을 바꾸는 동작 묶음. */
 export type SettlementActions = {
   setTitle: (title: string) => void;
   setDefaultPayerId: (participantId: string | null) => void;
@@ -79,6 +81,22 @@ const createEmptySettlement = (): Settlement => ({
   options: DEFAULT_OPTIONS,
   defaultPayerId: null,
 });
+
+/**
+ * 저장된 값이 Settlement 의 모양을 갖췄는지.
+ *
+ * localStorage 는 같은 출처의 사용자 데이터라 공유 URL 만큼 불신할 대상은 아니다.
+ * 다만 손으로 고치거나 다른 탭의 옛 빌드가 남긴 값이 들어오면, 배열이어야 할 자리가
+ * 비어 있는 채로 렌더까지 흘러가 `participants.map` 에서 터진다. 여기서 한 번 막는다.
+ */
+const isSettlementShape = (persisted: unknown): persisted is PersistedState => {
+  if (typeof persisted !== 'object' || persisted === null) return false;
+
+  const { settlement } = persisted as { settlement?: Partial<Settlement> };
+  if (!settlement) return false;
+
+  return Array.isArray(settlement.participants) && Array.isArray(settlement.items);
+};
 
 /**
  * v1 에는 `options.fullChargeSplit` 이 없다. 빠진 채로 복원하면 `fullChargeSplit === 'even'`
@@ -154,10 +172,11 @@ export const useSettlementStore = create<SettlementState>()(
        * 객체를 덮어써 새로고침 뒤에만 아무 버튼도 안 먹는다. 쓰는 쪽은 partialize 가
        * 막지만, 이미 저장된 값까지 막으려면 읽는 쪽도 좁혀야 한다.
        */
-      merge: (persisted, current): SettlementState => ({
-        ...current,
-        settlement: (persisted as PersistedState | undefined)?.settlement ?? current.settlement,
-      }),
+      merge: (persisted, current): SettlementState => {
+        const settlement = isSettlementShape(persisted) ? persisted.settlement : current.settlement;
+
+        return { ...current, settlement };
+      },
       migrate: (persisted, version) => {
         if (version >= 2) return persisted as PersistedState;
         return migrateSettlement(persisted);
