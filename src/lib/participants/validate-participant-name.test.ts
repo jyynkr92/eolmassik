@@ -62,6 +62,40 @@ describe('validateParticipantName', () => {
     });
   });
 
+  // 같은 "민수" 라도 완성형(NFC)과 조합형(NFD)은 코드포인트가 다르다.
+  // macOS 에서 복사하거나 일부 IME 를 거치면 조합형이 들어온다
+  it('조합형과 완성형 한글을 같은 이름으로 본다', () => {
+    const decomposed = '민수'.normalize('NFD');
+    expect(decomposed).not.toBe('민수');
+
+    expect(validateParticipantName(decomposed, participants)).toEqual({
+      isValid: false,
+      error: 'duplicate',
+    });
+  });
+
+  it('저장하는 이름은 완성형으로 맞춘다', () => {
+    const result = validateParticipantName('지영'.normalize('NFD'), participants);
+
+    expect(result).toEqual({ isValid: true, name: '지영' });
+  });
+
+  it('가운데 연속 공백을 하나로 줄인다', () => {
+    expect(validateParticipantName('김   민수', participants)).toEqual({
+      isValid: true,
+      name: '김 민수',
+    });
+  });
+
+  it('공백 개수만 다른 이름도 중복으로 본다', () => {
+    const withSpaces = [participant('p3', '김 민수')];
+
+    expect(validateParticipantName('김   민수', withSpaces)).toEqual({
+      isValid: false,
+      error: 'duplicate',
+    });
+  });
+
   it('참여자가 없으면 빈 이름만 거른다', () => {
     expect(validateParticipantName('민수', [])).toEqual({ isValid: true, name: '민수' });
     expect(validateParticipantName('', [])).toEqual({ isValid: false, error: 'empty' });
