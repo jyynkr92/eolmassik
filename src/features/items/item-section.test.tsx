@@ -126,7 +126,7 @@ describe('ItemSection', () => {
       await addItem(user);
       await user.type(within(getRow(0)).getByLabelText('항목 이름'), '고기');
 
-      await user.click(within(getRow(0)).getByRole('button', { name: '상세 설정' }));
+      await user.click(within(getRow(0)).getByRole('button', { name: '고기 상세 설정' }));
       await user.click(await screen.findByRole('button', { name: '항목 삭제하기' }));
       await user.click(screen.getByRole('button', { name: '삭제' }));
 

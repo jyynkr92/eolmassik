@@ -89,12 +89,11 @@ const ItemRow = ({ item, participants, onNameChange, onAmountChange, onOpenDetai
             className="w-32 shrink-0"
           />
 
-          {/* 어느 항목인지는 legend 가 말해 준다. 여기에 이름을 또 넣으면 타이핑할 때마다
-              버튼 이름이 바뀐다 */}
+          {/* 버튼 목록만 따로 탐색하는 스크린리더 사용자도 대상을 구분하도록 항목 이름을 넣는다 */}
           <Button
             isIconOnly
             variant="ghost"
-            aria-label={ITEMS_TEXT.detail.openAction}
+            aria-label={ITEMS_TEXT.detail.openAction(ITEMS_TEXT.rowLabel(item.name))}
             onClick={() => onOpenDetail(item.id)}
             className="shrink-0"
           >

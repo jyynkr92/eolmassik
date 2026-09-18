@@ -32,7 +32,7 @@ const openDetail = async (user: User, amount?: string) => {
   await user.click(screen.getByRole('button', { name: '항목 추가' }));
   if (amount !== undefined) await user.type(screen.getByLabelText('금액'), amount);
 
-  await user.click(screen.getByRole('button', { name: '상세 설정' }));
+  await user.click(screen.getByRole('button', { name: '이름 없는 항목 상세 설정' }));
 
   return screen.findByRole('dialog');
 };
@@ -84,8 +84,8 @@ describe('항목 상세 시트', () => {
     });
   });
 
-  describe('부담자', () => {
-    it('체크를 풀면 그 사람은 부담자에서 빠진다', async () => {
+  describe('N빵 참여', () => {
+    it('체크를 풀면 그 사람은 N빵 대상에서 빠진다', async () => {
       const user = userEvent.setup();
       render(<ItemSection />);
       await openDetail(user);
@@ -97,6 +97,23 @@ describe('항목 상세 시트', () => {
       await user.click(getBearerRow('지영'));
 
       expect(firstItem()?.participantIds).toContain(participantNamed('지영').id);
+    });
+
+    it('체크를 풀어도 직접 지정한 추가 부담은 유지한다', async () => {
+      const user = userEvent.setup();
+      render(<ItemSection />);
+      await openDetail(user, '30000');
+
+      await user.click(getExtraChargeToggle('지영'));
+      await user.type(screen.getByLabelText('지영 추가 부담 금액'), '6000');
+      await user.click(getBearerRow('지영'));
+
+      expect(firstItem()?.participantIds).not.toContain(participantNamed('지영').id);
+      expect(firstItem()?.extraCharges).toEqual([
+        { participantId: participantNamed('지영').id, type: 'amount', value: 6000 },
+      ]);
+      expect(getBearerRow('지영')).toHaveAccessibleName(/지영\s*6,000원/);
+      expect(screen.getByText(/체크를 풀면 N빵에서 빠져요/)).toBeInTheDocument();
     });
 
     // 시트의 금액과 결과 화면의 금액이 다르면 어느 쪽을 믿어야 할지 알 수 없다
@@ -227,13 +244,13 @@ describe('항목 상세 시트', () => {
       await user.click(screen.getByRole('button', { name: '항목 추가' }));
 
       for (const nextIndex of [0, 1]) {
-        await user.click(getButtonAt('상세 설정', 0));
+        await user.click(getButtonAt('이름 없는 항목 상세 설정', 0));
         await user.click(screen.getByRole('button', { name: '항목 삭제하기' }));
         expect(screen.getByRole('button', { name: '취소' })).toHaveFocus();
         if (closeAction === 'Escape') await user.keyboard('{Escape}');
         else await user.click(screen.getByRole('button', { name: '닫기' }));
 
-        await user.click(getButtonAt('상세 설정', nextIndex));
+        await user.click(getButtonAt('이름 없는 항목 상세 설정', nextIndex));
         expect(screen.getByRole('button', { name: '적용' })).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: '취소' })).not.toBeInTheDocument();
         await user.click(screen.getByRole('button', { name: '적용' }));
