@@ -17,6 +17,7 @@ import type { ExtraCharge, Item, Options, Participant, Settlement } from '@/type
 import {
   addItemTo,
   addParticipantTo,
+  applyDefaultPayerToItems,
   removeExtraChargeFrom,
   removeItemFrom,
   removeParticipantFrom,
@@ -40,6 +41,8 @@ export type SettlementActions = {
   removeParticipant: (participantId: string) => void;
 
   addItem: (name?: string) => void;
+  /** 결제자가 빠진 항목을 기본 결제자로 한 번에 채운다. */
+  applyDefaultPayer: () => void;
   updateItem: (itemId: string, patch: Partial<Omit<Item, 'id'>>) => void;
   removeItem: (itemId: string) => void;
 
@@ -147,6 +150,7 @@ export const useSettlementStore = create<SettlementState>()(
           removeParticipant: apply(removeParticipantFrom),
 
           addItem: apply(addItemTo),
+          applyDefaultPayer: apply(applyDefaultPayerToItems),
           updateItem: apply(updateItemIn),
           removeItem: apply(removeItemFrom),
 

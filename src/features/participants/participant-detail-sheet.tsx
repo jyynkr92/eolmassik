@@ -1,10 +1,12 @@
-import { Minus, Plus } from 'lucide-react';
+import { Minus, Plus, Wallet } from 'lucide-react';
 import { useState } from 'react';
 
 import Button from '@/components/ui/button';
+import ConfirmActions from '@/components/ui/confirm-actions';
 import Sheet from '@/components/ui/sheet';
 import TextField from '@/components/ui/text-field';
 import { MAX_HEADCOUNT } from '@/constants/settlement';
+import { COMMON_TEXT } from '@/constants/text/common';
 import { PARTICIPANTS_TEXT } from '@/constants/text/participants';
 import { validateParticipantName } from '@/lib/participants/validate-participant-name';
 import type { Participant } from '@/types/settlement';
@@ -15,9 +17,12 @@ interface Props {
   participant: Participant;
   /** 이름 중복 검사 대상. 본인은 검사에서 빠진다. */
   participants: Participant[];
+  isDefaultPayer: boolean;
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
   onSave: (participantId: string, patch: Partial<Omit<Participant, 'id'>>) => void;
+  /** 기본 결제자 지정. 누른 즉시 적용한다. */
+  onDefaultPayerChange: (participantId: string) => void;
   onRemove: (participantId: string) => void;
 }
 
@@ -31,24 +36,35 @@ interface Props {
  * 바뀌고, 그 사람이 들어간 항목의 부담자 목록과 추가 부담이 함께 날아간다. id 를 지킨 채
  * 이름만 바꿀 길이 반드시 있어야 한다.
  *
- * 저장은 닫을 때 한 번이다. 취소 수단이 없어 닫기가 곧 확정이고, 저장 지점이 하나여야
+ * 저장은 닫을 때 한 번이다. 아래 "적용" 버튼도 닫기와 같은 길이고, 바로 반영되는 줄 모르는
+ * 사람에게 끝나는 지점을 준다. 저장 지점이 하나여야
  * "어느 필드는 언제 저장되나"를 다시 설명하지 않아도 된다. 키를 칠 때마다 내보내면
  * "지영" 을 "민수" 로 고치는 도중의 "민" 까지 저장되기도 한다.
  *
  * 다만 유효성은 필드마다 따로다. 이름이 비어 있어 버려지더라도 인원 변경은 저장한다.
+ *
+ * 기본 결제자 지정과 삭제는 닫을 때가 아니라 누른 즉시 적용한다. "지정" 이라고 적힌 버튼이
+ * 닫을 때까지 아무 일도 안 하면 눌렸는지 알 수 없다.
+ *
+ * 삭제는 되돌릴 수 없어서 한 화면을 더 거친다. 시트를 하나 더 겹쳐 띄우는 대신 이 시트가
+ * 통째로 확인 화면이 되고, 좌상단 뒤로 가기나 취소로 돌아온다.
  *
  * 입력 상태는 이 컴포넌트가 들고 있고, 호출부가 열 때마다 새로 마운트해 초기화한다.
  */
 const ParticipantDetailSheet = ({
   participant,
   participants,
+  isDefaultPayer,
   isOpen,
   onOpenChange,
   onSave,
+  onDefaultPayerChange,
   onRemove,
 }: Props) => {
   const [name, setName] = useState(participant.name);
   const [headcount, setHeadcount] = useState(participant.headcount);
+  /** 삭제 확인 화면을 보고 있는지. 시트를 겹치지 않고 이 시트의 내용을 갈아 끼운다. */
+  const [isRemoveConfirming, setIsRemoveConfirming] = useState(false);
 
   const check = validateParticipantName(name, participants, participant.id);
   const errorMessage = check.isValid ? undefined : PARTICIPANTS_TEXT.nameError[check.error];
@@ -82,14 +98,36 @@ const ParticipantDetailSheet = ({
     onOpenChange(false);
   };
 
+  if (isRemoveConfirming) {
+    return (
+      <Sheet
+        isOpen={isOpen}
+        onOpenChange={handleOpenChange}
+        title={DETAIL_TEXT.removeConfirmTitle(participant.name)}
+        description={COMMON_TEXT.removeWarning}
+        onBack={() => setIsRemoveConfirming(false)}
+        footer={
+          <ConfirmActions onCancel={() => setIsRemoveConfirming(false)} onConfirm={handleRemove} />
+        }
+      >
+        <p className="text-on-surface-muted text-sm">{DETAIL_TEXT.removeConfirmBody}</p>
+      </Sheet>
+    );
+  }
+
   return (
     <Sheet
       isOpen={isOpen}
       onOpenChange={handleOpenChange}
       title={DETAIL_TEXT.title(participant.name)}
       description={DETAIL_TEXT.description}
+      footer={
+        <Button size="lg" isFullWidth onClick={() => handleOpenChange(false)}>
+          {COMMON_TEXT.apply}
+        </Button>
+      }
     >
-      <div className="flex flex-col gap-6 pb-2">
+      <div className="flex flex-col gap-6">
         <TextField
           label={DETAIL_TEXT.nameLabel}
           value={name}
@@ -142,7 +180,29 @@ const ParticipantDetailSheet = ({
           </div>
         </fieldset>
 
-        <Button variant="danger" size="lg" isFullWidth onClick={handleRemove}>
+        {/* 기본 결제자는 정산 전체에 하나뿐이라, 해제 대신 다른 사람 지정으로만 바뀐다 */}
+        <div className="flex flex-col gap-2">
+          {isDefaultPayer ? (
+            <p className="text-accent-text flex items-center gap-2 text-sm font-medium">
+              <Wallet size={16} aria-hidden />
+              {DETAIL_TEXT.defaultPayerCurrent}
+            </p>
+          ) : (
+            <Button
+              variant="outline"
+              size="lg"
+              isFullWidth
+              leadingIcon={<Wallet size={18} aria-hidden />}
+              onClick={() => onDefaultPayerChange(participant.id)}
+            >
+              {DETAIL_TEXT.defaultPayerAction}
+            </Button>
+          )}
+
+          <p className="text-on-surface-muted text-xs">{DETAIL_TEXT.defaultPayerHint}</p>
+        </div>
+
+        <Button variant="danger" size="lg" isFullWidth onClick={() => setIsRemoveConfirming(true)}>
           {DETAIL_TEXT.removeAction}
         </Button>
       </div>

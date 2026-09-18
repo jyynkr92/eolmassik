@@ -22,10 +22,13 @@ const item = (patch: Partial<Item> = {}): Item => ({
   ...patch,
 });
 
+/** 결제자는 예외가 아니어도 항상 맨 앞에 붙는다. */
+const payer = (name: string) => ({ kind: 'payer', participantName: name });
+
 describe('describeItem', () => {
-  // 조용한 행이 기본이어야 뭔가 적혀 있는 줄이 "여긴 예외" 라는 신호로 읽힌다
-  it('기본값이면 아무것도 알리지 않는다', () => {
-    expect(describeItem(item(), participants)).toEqual([]);
+  // 부담자 구성은 기본값이면 조용해야 뭔가 적혀 있는 줄이 "여긴 예외" 로 읽힌다
+  it('기본값이면 결제자만 알린다', () => {
+    expect(describeItem(item(), participants)).toEqual([payer('민수')]);
   });
 
   describe('결제자', () => {
@@ -50,24 +53,28 @@ describe('describeItem', () => {
   describe('부담자', () => {
     it('일부만 부담하면 인원을 알린다', () => {
       expect(describeItem(item({ participantIds: ['p1', 'p2'] }), participants)).toEqual([
+        payer('민수'),
         { kind: 'partial', participantCount: 2 },
       ]);
     });
 
     // calculateItem 이 부담자가 비면 결제자를 부담자로 세운다. 기획설계 4.1
+    // 이름은 바로 앞의 결제자 알림이 말하므로 여기서 다시 적지 않는다
     it('아무도 부담하지 않으면 결제자가 전액을 진다고 알린다', () => {
       expect(describeItem(item({ participantIds: [] }), participants)).toEqual([
-        { kind: 'payer-only', participantName: '민수' },
+        payer('민수'),
+        { kind: 'payer-only' },
       ]);
     });
 
-    it('전액 부담자가 따로 있으면 결제자 알림을 띄우지 않는다', () => {
+    it('전액 부담자가 따로 있으면 혼자 부담 알림을 띄우지 않는다', () => {
       const target = item({
         participantIds: [],
         extraCharges: [{ participantId: 'p2', type: 'full' }],
       });
 
       expect(describeItem(target, participants)).toEqual([
+        payer('민수'),
         { kind: 'full-charge', participantName: '은정이네' },
       ]);
     });
@@ -84,6 +91,7 @@ describe('describeItem', () => {
       const target = item({ participantIds: ['p1', 'p1', 'p2'] });
 
       expect(describeItem(target, participants)).toEqual([
+        payer('민수'),
         { kind: 'partial', participantCount: 2 },
       ]);
     });
@@ -92,6 +100,7 @@ describe('describeItem', () => {
       const target = item({ participantIds: ['p1', 'ghost'] });
 
       expect(describeItem(target, participants)).toEqual([
+        payer('민수'),
         { kind: 'partial', participantCount: 1 },
       ]);
     });
@@ -102,6 +111,7 @@ describe('describeItem', () => {
       const charges: ExtraCharge[] = [{ participantId: 'p2', type: 'full' }];
 
       expect(describeItem(item({ extraCharges: charges }), participants)).toEqual([
+        payer('민수'),
         { kind: 'full-charge', participantName: '은정이네' },
       ]);
     });
@@ -110,6 +120,7 @@ describe('describeItem', () => {
       const charges: ExtraCharge[] = [{ participantId: 'p2', type: 'amount', value: 12000 }];
 
       expect(describeItem(item({ extraCharges: charges }), participants)).toEqual([
+        payer('민수'),
         { kind: 'amount-charge', participantName: '은정이네', value: 12000 },
       ]);
     });
@@ -121,13 +132,13 @@ describe('describeItem', () => {
         { participantId: 'p2', type: 'amount', value: 0 },
       ];
 
-      expect(describeItem(item({ extraCharges: charges }), participants)).toEqual([]);
+      expect(describeItem(item({ extraCharges: charges }), participants)).toEqual([payer('민수')]);
     });
 
     it('이미 지워진 참여자의 추가 부담은 버린다', () => {
       const charges: ExtraCharge[] = [{ participantId: 'ghost', type: 'full' }];
 
-      expect(describeItem(item({ extraCharges: charges }), participants)).toEqual([]);
+      expect(describeItem(item({ extraCharges: charges }), participants)).toEqual([payer('민수')]);
     });
 
     it('여러 명의 추가 부담을 순서대로 담는다', () => {
@@ -137,6 +148,7 @@ describe('describeItem', () => {
       ];
 
       expect(describeItem(item({ extraCharges: charges }), participants)).toEqual([
+        payer('민수'),
         { kind: 'amount-charge', participantName: '은정이네', value: 12000 },
         { kind: 'full-charge', participantName: '지영' },
       ]);

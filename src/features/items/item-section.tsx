@@ -1,4 +1,5 @@
 import { Plus } from 'lucide-react';
+import { useState } from 'react';
 
 import Button from '@/components/ui/button';
 import Card from '@/components/ui/card';
@@ -8,6 +9,7 @@ import { formatWon } from '@/lib/format';
 import { hasPayer } from '@/lib/items/has-payer';
 import { useSettlementActions, useSettlementStore } from '@/store/settlement-store';
 
+import ItemDetailSheet from './item-detail-sheet';
 import ItemRow from './item-row';
 
 /**
@@ -21,7 +23,28 @@ import ItemRow from './item-row';
 const ItemSection = () => {
   const items = useSettlementStore((state) => state.settlement.items);
   const participants = useSettlementStore((state) => state.settlement.participants);
-  const { addItem, updateItem, removeItem } = useSettlementActions();
+  const options = useSettlementStore((state) => state.settlement.options);
+  const defaultPayerId = useSettlementStore((state) => state.settlement.defaultPayerId);
+  const {
+    addItem,
+    applyDefaultPayer,
+    updateItem,
+    removeItem,
+    toggleItemParticipant,
+    setExtraCharge,
+    removeExtraCharge,
+  } = useSettlementActions();
+
+  /**
+   * 상세 시트를 연 항목. 닫은 뒤에도 남겨 둬야 내려가는 애니메이션이 그려진다.
+   *
+   * 항목 객체가 아니라 id 로 들고 있다가 매번 찾는다. 시트는 초안을 두지 않고 스토어에
+   * 바로 쓰므로, 스냅샷을 들면 시트 안에서 고친 값이 그 시트에 되돌아오지 않는다.
+   */
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  // NOTE: 같은 항목을 다시 열어도 삭제 확인과 펼침 상태를 초기화한다.
+  const [openSeq, setOpenSeq] = useState(0);
 
   /**
    * 입력이 바뀔 때마다 스토어에 쓴다. persist 가 동기로 localStorage 에 쓰므로 키 입력마다
@@ -36,6 +59,16 @@ const ItemSection = () => {
     updateItem(itemId, { amount });
   };
 
+  const handleOpenDetail = (itemId: string) => {
+    setSelectedItemId(itemId);
+    setOpenSeq((seq) => seq + 1);
+    setIsSheetOpen(true);
+  };
+
+  const handlePayerChange = (itemId: string, payerId: string) => {
+    updateItem(itemId, { payerId });
+  };
+
   const hasParticipants = participants.length > 0;
   const hasItems = items.length > 0;
 
@@ -48,6 +81,17 @@ const ItemSection = () => {
   const settleableItems = items.filter((item) => hasPayer(item, participants));
   const totalAmount = settleableItems.reduce((sum, item) => sum + item.amount, 0);
   const excludedCount = items.length - settleableItems.length;
+
+  const selectedItem = items.find((item) => item.id === selectedItemId);
+
+  /**
+   * 기본 결제자. 빠진 항목을 한 번에 되살리는 버튼에 이름으로 쓴다.
+   *
+   * 지금까지 이 값은 화면 어디에도 드러나지 않았다. 처음 추가한 참여자로 조용히 정해지고,
+   * 그 사람을 지우면 남은 첫 참여자로 옮겨간다. 버튼 문구에 이름을 넣어 누가 들어올지
+   * 누르기 전에 보이게 한다.
+   */
+  const defaultPayer = participants.find((participant) => participant.id === defaultPayerId);
 
   return (
     <Card
@@ -69,7 +113,7 @@ const ItemSection = () => {
               participants={participants}
               onNameChange={handleNameChange}
               onAmountChange={handleAmountChange}
-              onRemove={removeItem}
+              onOpenDetail={handleOpenDetail}
             />
           ))}
         </ul>
@@ -100,6 +144,22 @@ const ItemSection = () => {
         )}
       </div>
 
+      {selectedItem && (
+        <ItemDetailSheet
+          key={openSeq}
+          item={selectedItem}
+          participants={participants}
+          options={options}
+          isOpen={isSheetOpen}
+          onOpenChange={setIsSheetOpen}
+          onPayerChange={handlePayerChange}
+          onParticipantToggle={toggleItemParticipant}
+          onExtraChargeChange={setExtraCharge}
+          onExtraChargeRemove={removeExtraCharge}
+          onRemove={removeItem}
+        />
+      )}
+
       {hasItems && (
         <div className="border-outline-base flex flex-col border-t pt-3">
           <div className="flex items-center justify-between">
@@ -114,6 +174,13 @@ const ItemSection = () => {
           <p role="status" className={cn('text-danger-text text-xs', excludedCount > 0 && 'mt-2')}>
             {excludedCount > 0 ? ITEMS_TEXT.excludedNotice(excludedCount) : ''}
           </p>
+
+          {/* 알림 바로 아래에 해결 수단을 둔다. 이미 결제자가 있는 항목은 건드리지 않는다 */}
+          {excludedCount > 0 && defaultPayer && (
+            <Button variant="soft" isFullWidth onClick={applyDefaultPayer} className="mt-3">
+              {ITEMS_TEXT.applyDefaultPayerAction(defaultPayer.name)}
+            </Button>
+          )}
         </div>
       )}
     </Card>

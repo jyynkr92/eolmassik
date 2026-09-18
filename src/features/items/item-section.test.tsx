@@ -118,14 +118,17 @@ describe('ItemSection', () => {
       expect(within(getRow(0)).getByLabelText('금액')).toHaveValue('32,000');
     });
 
-    it('해당 항목만 지운다', async () => {
+    // 삭제는 상세 시트 안에 있다. 행에 두면 좁은 화면에서 이름 칸을 밀어낸다
+    it('상세 시트에서 해당 항목만 지운다', async () => {
       const user = userEvent.setup();
       render(<ItemSection />);
       await addItem(user);
       await addItem(user);
       await user.type(within(getRow(0)).getByLabelText('항목 이름'), '고기');
 
-      await user.click(within(getRow(0)).getByRole('button', { name: '삭제' }));
+      await user.click(within(getRow(0)).getByRole('button', { name: '고기 상세 설정' }));
+      await user.click(await screen.findByRole('button', { name: '항목 삭제하기' }));
+      await user.click(screen.getByRole('button', { name: '삭제' }));
 
       expect(itemsInStore()).toHaveLength(1);
       expect(itemsInStore()[0]?.name).toBe('');
@@ -149,14 +152,14 @@ describe('ItemSection', () => {
       addParticipants('민수', '은정이네', '지영');
     });
 
-    // 모든 행에 "3명 N빵" 을 적으면 정작 예외인 줄이 묻힌다
-    it('전원이 똑같이 나누면 요약을 붙이지 않는다', async () => {
+    // 모든 행에 "3명 N빵" 을 적으면 정작 예외인 줄이 묻힌다. 결제자는 예외로 항상 적는다
+    it('전원이 똑같이 나누면 결제자만 적는다', async () => {
       const user = userEvent.setup();
       render(<ItemSection />);
       await addItem(user);
 
-      expect(within(getRow(0)).queryByText(/부담/)).not.toBeInTheDocument();
-      expect(within(getRow(0)).queryByText(/전액/)).not.toBeInTheDocument();
+      expect(within(getRow(0)).getByText('민수 결제')).toBeInTheDocument();
+      expect(within(getRow(0)).queryByText(/부담|전액/)).not.toBeInTheDocument();
     });
 
     it('일부만 부담하면 인원을 알려준다', async () => {
@@ -168,7 +171,7 @@ describe('ItemSection', () => {
       const [excluded] = settlementInStore().participants;
       if (excluded) toggleItemParticipant(`${firstItem()?.id}`, excluded.id);
 
-      expect(await within(getRow(0)).findByText('2명만 부담')).toBeInTheDocument();
+      expect(await within(getRow(0)).findByText('민수 결제 · 2명만 부담')).toBeInTheDocument();
     });
 
     it('부담자가 없으면 결제자가 전액을 진다고 알려준다', async () => {
@@ -182,10 +185,10 @@ describe('ItemSection', () => {
         toggleItemParticipant(itemId, participant.id);
       }
 
-      expect(await within(getRow(0)).findByText('민수 혼자 부담')).toBeInTheDocument();
+      expect(await within(getRow(0)).findByText('민수 결제 · 혼자 부담')).toBeInTheDocument();
     });
 
-    it('추가 부담이 있으면 그것만 적는다', async () => {
+    it('추가 부담을 적는다', async () => {
       const user = userEvent.setup();
       render(<ItemSection />);
       await addItem(user);
@@ -194,7 +197,7 @@ describe('ItemSection', () => {
       const payer = settlementInStore().participants[1];
       if (payer) setExtraCharge(`${firstItem()?.id}`, { participantId: payer.id, type: 'full' });
 
-      expect(await within(getRow(0)).findByText('은정이네 전액')).toBeInTheDocument();
+      expect(await within(getRow(0)).findByText('민수 결제 · 은정이네 전액')).toBeInTheDocument();
     });
 
     // 참여자를 지우면 그 사람을 결제자로 쓰던 항목이 정산에서 통째로 빠진다
@@ -210,6 +213,26 @@ describe('ItemSection', () => {
       expect(await within(getRow(0)).findByText(/결제자 없음/)).toBeInTheDocument();
       expect(screen.getByText('결제자가 없는 항목 1개는 합계에서 빠졌어요')).toBeInTheDocument();
       expect(screen.getByText('0원')).toBeInTheDocument();
+    });
+
+    // 사람 하나 지웠다고 항목마다 시트를 열어 결제자를 다시 고르게 할 일은 아니다
+    it('빠진 항목을 기본 결제자로 한 번에 되살린다', async () => {
+      const user = userEvent.setup();
+      render(<ItemSection />);
+      await addItem(user);
+      await addItem(user);
+      await user.type(within(getRow(0)).getByLabelText('금액'), '30000');
+
+      const { removeParticipant } = useSettlementStore.getState().actions;
+      removeParticipant(`${settlementInStore().defaultPayerId}`);
+
+      await user.click(
+        await screen.findByRole('button', { name: '기본 결제자(은정이네)로 한 번에 지정' }),
+      );
+
+      expect(itemsInStore().every((item) => item.payerId !== '')).toBe(true);
+      expect(screen.getByText('30,000원')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /한 번에 지정/ })).not.toBeInTheDocument();
     });
 
     it('항목 금액을 더해 합계를 보여준다', async () => {

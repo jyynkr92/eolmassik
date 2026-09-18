@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Card from '@/components/ui/card';
 import Chip from '@/components/ui/chip';
 import { PARTICIPANTS_TEXT } from '@/constants/text/participants';
+import { cn } from '@/lib/cn';
 import { useSettlementActions, useSettlementStore } from '@/store/settlement-store';
 import type { Participant } from '@/types/settlement';
 
@@ -18,7 +19,9 @@ import ParticipantForm from './participant-form';
  */
 const ParticipantSection = () => {
   const participants = useSettlementStore((state) => state.settlement.participants);
-  const { addParticipant, updateParticipant, removeParticipant } = useSettlementActions();
+  const defaultPayerId = useSettlementStore((state) => state.settlement.defaultPayerId);
+  const { addParticipant, updateParticipant, removeParticipant, setDefaultPayerId } =
+    useSettlementActions();
 
   /**
    * 시트를 연 참여자. 닫은 뒤에도 남겨 둬야 내려가는 애니메이션이 그려진다.
@@ -64,13 +67,33 @@ const ParticipantSection = () => {
               <li key={participant.id}>
                 <Chip
                   onClick={() => handleChipClick(participant)}
-                  aria-label={PARTICIPANTS_TEXT.chipAction(participant.name, participant.headcount)}
+                  aria-label={PARTICIPANTS_TEXT.chipAction(
+                    participant.name,
+                    participant.headcount,
+                    participant.id === defaultPayerId,
+                  )}
+                  /**
+                   * 기본 결제자 칩은 테두리까지 강조한다. 뱃지만으로는 칩이 여러 개
+                   * 늘어선 줄에서 눈에 걸리지 않는다. `isSelected` 를 쓰지 않는 이유는
+                   * 그게 `aria-pressed` 를 붙여 토글 버튼으로 읽히게 만들기 때문이다.
+                   */
+                  className={cn(
+                    participant.id === defaultPayerId && 'border-accent-line text-accent-text',
+                  )}
                   suffix={
-                    participant.headcount > 1 && (
-                      <span className="tabular bg-accent-subtle text-accent-text rounded-full px-2 py-0.5 text-xs font-semibold">
-                        {participant.headcount}
-                      </span>
-                    )
+                    <>
+                      {participant.headcount > 1 && (
+                        <span className="tabular bg-accent-subtle text-accent-text rounded-full px-2 py-0.5 text-xs font-semibold">
+                          {participant.headcount}
+                        </span>
+                      )}
+                      {/* 채운 뱃지 하나로 "이 사람이 기본 결제자" 를 칩만 보고 알게 한다 */}
+                      {participant.id === defaultPayerId && (
+                        <span className="bg-accent-solid text-accent-on rounded-full px-2 py-0.5 text-xs font-semibold">
+                          {PARTICIPANTS_TEXT.defaultPayerBadge}
+                        </span>
+                      )}
+                    </>
                   }
                 >
                   {participant.name}
@@ -90,9 +113,11 @@ const ParticipantSection = () => {
           key={openSeq}
           participant={selected}
           participants={participants}
+          isDefaultPayer={selected.id === defaultPayerId}
           isOpen={isSheetOpen}
           onOpenChange={setIsSheetOpen}
           onSave={updateParticipant}
+          onDefaultPayerChange={setDefaultPayerId}
           onRemove={removeParticipant}
         />
       )}
