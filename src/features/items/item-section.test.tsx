@@ -41,6 +41,21 @@ describe('ItemSection', () => {
       expect(screen.getByRole('button', { name: '항목 추가' })).toBeDisabled();
       expect(screen.getByText('참여자를 먼저 추가해 주세요')).toBeInTheDocument();
     });
+
+    // 이유가 빈 상태 안에만 있으면, 항목을 만든 뒤 참여자를 지웠을 때 찾을 데가 없다
+    it('항목이 남아 있어도 이유를 계속 보여준다', async () => {
+      const user = userEvent.setup();
+      addParticipants('민수');
+      render(<ItemSection />);
+      await addItem(user);
+
+      const { removeParticipant } = useSettlementStore.getState().actions;
+      removeParticipant(`${settlementInStore().participants[0]?.id}`);
+
+      // findBy 로 리렌더를 기다린 뒤 버튼 상태를 본다
+      expect(await screen.findByText('참여자를 먼저 추가해 주세요')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '항목 추가' })).toBeDisabled();
+    });
   });
 
   describe('항목 추가', () => {
@@ -156,7 +171,7 @@ describe('ItemSection', () => {
       expect(await within(getRow(0)).findByText('2명만 부담')).toBeInTheDocument();
     });
 
-    it('부담자가 아무도 없으면 그렇게 알려준다', async () => {
+    it('부담자가 없으면 결제자가 전액을 진다고 알려준다', async () => {
       const user = userEvent.setup();
       render(<ItemSection />);
       await addItem(user);
@@ -167,7 +182,7 @@ describe('ItemSection', () => {
         toggleItemParticipant(itemId, participant.id);
       }
 
-      expect(await within(getRow(0)).findByText('부담할 사람이 없어요')).toBeInTheDocument();
+      expect(await within(getRow(0)).findByText('민수 혼자 부담')).toBeInTheDocument();
     });
 
     it('추가 부담이 있으면 그것만 적는다', async () => {

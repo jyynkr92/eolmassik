@@ -10,40 +10,57 @@ import type { ItemNotice } from './types';
  * 행에 아무것도 그리지 않는다. 모든 행에 "5명 N빵" 을 적으면 열 줄 중 아홉 줄이 같은 말이라
  * 정작 예외인 한 줄이 묻힌다.
  *
- * 금액 계산은 하지 않는다. 행은 훑어보는 자리고, 정확한 부담액은 결과 화면이 맡는다.
+ * 금액 계산은 하지 않지만 **계산이 실제로 하는 일과 어긋나서는 안 된다.** 행에 적힌 말과
+ * 결과 화면의 숫자가 다르면 어느 쪽을 믿어야 할지 알 수 없다.
  *
  * 참여자 목록에 없는 id 는 버린다. 공유 URL 로 들어온 데이터에는 이미 지워진 참여자를
  * 가리키는 값이 남아 있을 수 있는데, 이름을 못 찾았다고 화면이 비면 안 된다.
  */
 export const describeItem = (item: Item, participants: Participant[]): ItemNotice[] => {
   const nameById = new Map(participants.map((participant) => [participant.id, participant.name]));
-  const notices: ItemNotice[] = [];
 
-  // 결제자가 없으면 이 항목은 정산에서 빠진다. 가장 먼저 알린다
-  if (!hasPayer(item, participants)) notices.push({ kind: 'no-payer' });
-
-  // Set 으로 센다. 조작된 데이터에 같은 id 가 두 번 들어 있으면 부담자가 참여자보다 많아지고,
-  // 그러면 일부만 부담하는 항목이 전원 부담으로 보인다
-  const participantCount = new Set(item.participantIds.filter((id) => nameById.has(id))).size;
-
-  if (participantCount === 0) notices.push({ kind: 'no-participants' });
-  else if (participantCount < participants.length)
-    notices.push({ kind: 'partial', participantCount });
-
+  const chargeNotices: ItemNotice[] = [];
   for (const charge of item.extraCharges) {
     const participantName = nameById.get(charge.participantId);
     if (participantName === undefined) continue;
 
     if (charge.type === 'full') {
-      notices.push({ kind: 'full-charge', participantName });
+      chargeNotices.push({ kind: 'full-charge', participantName });
       continue;
     }
 
     // 금액 지정인데 값이 없으면 보여줄 게 없다. 0원 부담은 부담이 아니다
     if (charge.value === undefined || charge.value <= 0) continue;
 
-    notices.push({ kind: 'amount-charge', participantName, value: charge.value });
+    chargeNotices.push({ kind: 'amount-charge', participantName, value: charge.value });
   }
 
+  // Set 으로 센다. 조작된 데이터에 같은 id 가 두 번 들어 있으면 부담자가 참여자보다 많아지고,
+  // 그러면 일부만 부담하는 항목이 전원 부담으로 보인다
+  const participantCount = new Set(item.participantIds.filter((id) => nameById.has(id))).size;
+  const hasFullCharge = chargeNotices.some((notice) => notice.kind === 'full-charge');
+
+  const notices: ItemNotice[] = [];
+
+  // 결제자가 없으면 이 항목은 정산에서 빠진다. 가장 먼저 알린다
+  if (!hasPayer(item, participants)) notices.push({ kind: 'no-payer' });
+
+  /**
+   * 부담자가 비면 `calculateItem` 이 결제자를 부담자로 세워 전액을 지운다. 기획설계 4.1
+   *
+   * "부담할 사람이 없다" 고 적으면 계산과 정반대가 된다. 실제로는 결제자 한 명이 다 낸다.
+   * 전액 부담자가 따로 있으면 그 폴백이 작동하지 않으므로 그쪽 알림이 설명을 맡고,
+   * 결제자마저 없으면 이 항목은 0원이라 위의 알림만으로 충분하다.
+   */
+  const payerName = nameById.get(item.payerId);
+  if (participantCount === 0 && !hasFullCharge && payerName !== undefined) {
+    notices.push({ kind: 'payer-only', participantName: payerName });
+  }
+
+  if (participantCount > 0 && participantCount < participants.length) {
+    notices.push({ kind: 'partial', participantCount });
+  }
+
+  notices.push(...chargeNotices);
   return notices;
 };

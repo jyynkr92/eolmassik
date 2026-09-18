@@ -8,7 +8,8 @@
  */
 export type ItemNotice =
   | { kind: 'no-payer' }
-  | { kind: 'no-participants' }
+  /** 부담자를 아무도 고르지 않아 결제자가 전액을 지는 상태. 기획설계 4.1 */
+  | { kind: 'payer-only'; participantName: string }
   | { kind: 'partial'; participantCount: number }
   | { kind: 'full-charge'; participantName: string }
   | { kind: 'amount-charge'; participantName: string; value: number };

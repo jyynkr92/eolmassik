@@ -12,5 +12,5 @@ export const COMMON_TEXT = {
   add: '추가',
 
   /** 금액 입력이 상한에서 잘렸을 때. 상한 값은 상수에서 가져와 문구와 어긋나지 않게 한다. */
-  maxAmountReached: `${formatWon(MAX_AMOUNT)}까지 입력할 수 있어요`,
+  maxAmountReached: `최대 ${formatWon(MAX_AMOUNT)}`,
 } as const;

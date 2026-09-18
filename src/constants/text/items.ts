@@ -25,7 +25,11 @@ export const ITEMS_TEXT = {
   summary: {
     /** 결제자가 없으면 이 항목은 정산에서 통째로 빠진다. */
     noPayer: '결제자 없음',
-    noParticipants: '부담할 사람이 없어요',
+    /**
+     * 부담자를 아무도 고르지 않으면 계산이 결제자에게 전액을 지운다. 기획설계 4.1
+     * "부담할 사람이 없어요" 라고 적으면 계산과 반대되는 말이 된다.
+     */
+    payerOnly: (name: string) => `${name} 혼자 부담`,
     partial: (participantCount: number) => `${participantCount}명만 부담`,
     full: (name: string) => `${name} 전액`,
     amount: (name: string, value: number) => `${name} +${formatAmount(value)}`,

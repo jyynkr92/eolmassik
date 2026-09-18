@@ -23,8 +23,8 @@ const describeNotice = (notice: ItemNotice): string => {
   switch (notice.kind) {
     case 'no-payer':
       return SUMMARY_TEXT.noPayer;
-    case 'no-participants':
-      return SUMMARY_TEXT.noParticipants;
+    case 'payer-only':
+      return SUMMARY_TEXT.payerOnly(notice.participantName);
     case 'partial':
       return SUMMARY_TEXT.partial(notice.participantCount);
     case 'full-charge':
@@ -70,7 +70,8 @@ const ItemRow = ({ item, participants, onNameChange, onAmountChange, onRemove }:
           />
 
           {/* "원" 은 숨긴다. 좁은 행에서 단위가 자릿수를 밀어내는데, 합계에 원이 붙어 있고
-              숫자만 있어도 금액인 게 분명하다. 폭은 100만원대까지 들어가게 잡았다 */}
+              숫자만 있어도 금액인 게 분명하다. 폭은 백만 단위까지 한눈에 들어가게 잡았고,
+              그보다 큰 금액은 칸 안에서 스크롤된다 */}
           <AmountField
             label={ITEMS_TEXT.amountLabel}
             isLabelHidden

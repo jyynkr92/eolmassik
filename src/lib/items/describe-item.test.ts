@@ -54,10 +54,29 @@ describe('describeItem', () => {
       ]);
     });
 
-    it('아무도 부담하지 않으면 알린다', () => {
+    // calculateItem 이 부담자가 비면 결제자를 부담자로 세운다. 기획설계 4.1
+    it('아무도 부담하지 않으면 결제자가 전액을 진다고 알린다', () => {
       expect(describeItem(item({ participantIds: [] }), participants)).toEqual([
-        { kind: 'no-participants' },
+        { kind: 'payer-only', participantName: '민수' },
       ]);
+    });
+
+    it('전액 부담자가 따로 있으면 결제자 알림을 띄우지 않는다', () => {
+      const target = item({
+        participantIds: [],
+        extraCharges: [{ participantId: 'p2', type: 'full' }],
+      });
+
+      expect(describeItem(target, participants)).toEqual([
+        { kind: 'full-charge', participantName: '은정이네' },
+      ]);
+    });
+
+    // 결제자도 없으면 이 항목은 0원이라 결제자 알림만으로 충분하다
+    it('결제자도 부담자도 없으면 결제자 없음만 알린다', () => {
+      const target = item({ payerId: '', participantIds: [] });
+
+      expect(describeItem(target, participants)).toEqual([{ kind: 'no-payer' }]);
     });
 
     // 조작된 데이터에 같은 id 가 두 번 들어 있으면 부담자가 참여자보다 많아진다

@@ -3,6 +3,7 @@ import { Plus } from 'lucide-react';
 import Button from '@/components/ui/button';
 import Card from '@/components/ui/card';
 import { ITEMS_TEXT } from '@/constants/text/items';
+import { cn } from '@/lib/cn';
 import { formatWon } from '@/lib/format';
 import { hasPayer } from '@/lib/items/has-payer';
 import { useSettlementActions, useSettlementStore } from '@/store/settlement-store';
@@ -74,25 +75,33 @@ const ItemSection = () => {
         </ul>
       )}
 
-      {!hasItems && (
-        <p className="text-on-surface-muted py-2 text-sm">
-          {hasParticipants ? ITEMS_TEXT.empty : ITEMS_TEXT.needsParticipants}
-        </p>
+      {!hasItems && hasParticipants && (
+        <p className="text-on-surface-muted py-2 text-sm">{ITEMS_TEXT.empty}</p>
       )}
 
-      <Button
-        variant="soft"
-        size="lg"
-        isFullWidth
-        disabled={!hasParticipants}
-        leadingIcon={<Plus size={18} aria-hidden />}
-        onClick={() => addItem()}
-      >
-        {ITEMS_TEXT.addAction}
-      </Button>
+      <div className="flex flex-col gap-2">
+        <Button
+          variant="soft"
+          size="lg"
+          isFullWidth
+          disabled={!hasParticipants}
+          leadingIcon={<Plus size={18} aria-hidden />}
+          onClick={() => addItem()}
+        >
+          {ITEMS_TEXT.addAction}
+        </Button>
+
+        {/* 버튼이 왜 막혔는지는 항목이 있든 없든 알려야 한다. 참여자를 전부 지우면
+            항목은 남아 있는데 버튼만 비활성이 되어 이유를 찾을 데가 없었다 */}
+        {!hasParticipants && (
+          <p className="text-on-surface-muted text-center text-xs">
+            {ITEMS_TEXT.needsParticipants}
+          </p>
+        )}
+      </div>
 
       {hasItems && (
-        <div className="border-outline-base flex flex-col gap-2 border-t pt-3">
+        <div className="border-outline-base flex flex-col border-t pt-3">
           <div className="flex items-center justify-between">
             <span className="text-on-surface-muted text-sm">{ITEMS_TEXT.totalLabel}</span>
             <span className="tabular text-on-surface-base text-base font-semibold">
@@ -100,11 +109,11 @@ const ItemSection = () => {
             </span>
           </div>
 
-          {excludedCount > 0 && (
-            <p role="status" className="text-danger-text text-xs">
-              {ITEMS_TEXT.excludedNotice(excludedCount)}
-            </p>
-          )}
+          {/* 비어 있어도 DOM 에 남겨 둔다. 라이브 영역은 내용이 바뀌기 전부터 자리에 있어야
+              스크린리더가 변화를 읽는다 */}
+          <p role="status" className={cn('text-danger-text text-xs', excludedCount > 0 && 'mt-2')}>
+            {excludedCount > 0 ? ITEMS_TEXT.excludedNotice(excludedCount) : ''}
+          </p>
         </div>
       )}
     </Card>

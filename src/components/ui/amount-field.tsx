@@ -112,7 +112,7 @@ const AmountField = ({
     .join(' ');
 
   return (
-    <div className={cn('flex flex-col gap-2', className)}>
+    <div className={cn('flex flex-col', className)}>
       <label
         htmlFor={inputId}
         className={cn('text-on-surface-muted text-sm font-medium', isLabelHidden && 'sr-only')}
@@ -122,7 +122,7 @@ const AmountField = ({
 
       <div
         className={cn(
-          'bg-surface-raised border-outline-base focus-ring-within flex h-12 items-center rounded-xl border',
+          'bg-surface-raised border-outline-base focus-ring-within mt-2 flex h-12 items-center rounded-xl border',
           !isUnitHidden && 'pr-4',
         )}
       >
@@ -148,12 +148,19 @@ const AmountField = ({
         </span>
       </div>
 
-      {/* 상한에서 잘렸다는 사실을 알려준다. 없으면 키가 안 먹는 것처럼 보인다 */}
-      {isMaxReached && (
-        <p id={noticeId} role="status" className="text-on-surface-muted text-xs">
-          {COMMON_TEXT.maxAmountReached}
-        </p>
-      )}
+      {/*
+        상한에서 잘렸다는 사실을 알려준다. 없으면 키가 안 먹는 것처럼 보인다.
+
+        비어 있어도 DOM 에 남겨 둔다. 라이브 영역은 내용이 바뀌기 전부터 자리에 있어야
+        스크린리더가 변화를 읽는다. 알림이 뜨는 순간 요소째 나타나면 대부분 읽히지 않는다.
+      */}
+      <p
+        id={noticeId}
+        role="status"
+        className={cn('text-on-surface-muted text-xs', isMaxReached && 'mt-2')}
+      >
+        {isMaxReached ? COMMON_TEXT.maxAmountReached : ''}
+      </p>
     </div>
   );
 };
