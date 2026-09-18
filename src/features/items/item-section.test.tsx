@@ -21,7 +21,12 @@ const addItem = async (user: User) => {
   await user.click(screen.getByRole('button', { name: '항목 추가' }));
 };
 
-const getRow = (index: number) => screen.getAllByRole('listitem')[index] as HTMLElement;
+const getRow = (index: number) => {
+  const row = screen.getAllByRole('listitem')[index];
+  if (!row) throw new Error(`${index}번째 항목 행이 없습니다`);
+
+  return row;
+};
 
 describe('ItemSection', () => {
   beforeEach(() => {
@@ -105,18 +110,22 @@ describe('ItemSection', () => {
       await addItem(user);
       await user.type(within(getRow(0)).getByLabelText('항목 이름'), '고기');
 
-      await user.click(screen.getByRole('button', { name: '고기 삭제' }));
+      await user.click(within(getRow(0)).getByRole('button', { name: '삭제' }));
 
       expect(itemsInStore()).toHaveLength(1);
       expect(itemsInStore()[0]?.name).toBe('');
     });
 
-    it('이름이 없는 항목도 삭제 버튼을 읽을 수 있다', async () => {
+    // 라벨이 모든 행에서 같아, 묶음 이름이 없으면 어느 항목인지 알 수 없다
+    it('행을 항목 이름으로 묶어 읽게 한다', async () => {
       const user = userEvent.setup();
       render(<ItemSection />);
       await addItem(user);
 
-      expect(screen.getByRole('button', { name: '이름 없는 항목 삭제' })).toBeInTheDocument();
+      expect(screen.getByRole('group', { name: '이름 없는 항목' })).toBeInTheDocument();
+
+      await user.type(within(getRow(0)).getByLabelText('항목 이름'), '고기');
+      expect(screen.getByRole('group', { name: '고기' })).toBeInTheDocument();
     });
   });
 
@@ -171,6 +180,21 @@ describe('ItemSection', () => {
       if (payer) setExtraCharge(`${firstItem()?.id}`, { participantId: payer.id, type: 'full' });
 
       expect(await within(getRow(0)).findByText('은정이네 전액')).toBeInTheDocument();
+    });
+
+    // 참여자를 지우면 그 사람을 결제자로 쓰던 항목이 정산에서 통째로 빠진다
+    it('결제자가 사라지면 행과 합계 양쪽에서 알린다', async () => {
+      const user = userEvent.setup();
+      render(<ItemSection />);
+      await addItem(user);
+      await user.type(within(getRow(0)).getByLabelText('금액'), '30000');
+
+      const { removeParticipant } = useSettlementStore.getState().actions;
+      removeParticipant(`${settlementInStore().defaultPayerId}`);
+
+      expect(await within(getRow(0)).findByText(/결제자 없음/)).toBeInTheDocument();
+      expect(screen.getByText('결제자가 없는 항목 1개는 합계에서 빠졌어요')).toBeInTheDocument();
+      expect(screen.getByText('0원')).toBeInTheDocument();
     });
 
     it('항목 금액을 더해 합계를 보여준다', async () => {

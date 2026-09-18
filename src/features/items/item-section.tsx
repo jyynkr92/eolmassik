@@ -4,6 +4,7 @@ import Button from '@/components/ui/button';
 import Card from '@/components/ui/card';
 import { ITEMS_TEXT } from '@/constants/text/items';
 import { formatWon } from '@/lib/format';
+import { hasPayer } from '@/lib/items/has-payer';
 import { useSettlementActions, useSettlementStore } from '@/store/settlement-store';
 
 import ItemRow from './item-row';
@@ -21,6 +22,11 @@ const ItemSection = () => {
   const participants = useSettlementStore((state) => state.settlement.participants);
   const { addItem, updateItem, removeItem } = useSettlementActions();
 
+  /**
+   * 입력이 바뀔 때마다 스토어에 쓴다. persist 가 동기로 localStorage 에 쓰므로 키 입력마다
+   * 직렬화가 일어나지만, 이 초안은 작성이 끝나면 버려지는 데이터이고 새로고침 복구가
+   * 그보다 중요하다. 항목 이름·금액은 검증이 없어 중간값이 남아도 해가 없다.
+   */
   const handleNameChange = (itemId: string, name: string) => {
     updateItem(itemId, { name });
   };
@@ -31,7 +37,16 @@ const ItemSection = () => {
 
   const hasParticipants = participants.length > 0;
   const hasItems = items.length > 0;
-  const totalAmount = items.reduce((sum, item) => sum + item.amount, 0);
+
+  /**
+   * 합계는 정산에 실제로 반영될 항목만 더한다.
+   *
+   * 결제자가 없는 항목은 `calculateSettlement` 이 통째로 빼므로, 그것까지 더하면 화면의
+   * 합계와 실제 정산 금액이 어긋난다. 빠진 항목이 있다는 사실은 아래에서 따로 알린다.
+   */
+  const settleableItems = items.filter((item) => hasPayer(item, participants));
+  const totalAmount = settleableItems.reduce((sum, item) => sum + item.amount, 0);
+  const excludedCount = items.length - settleableItems.length;
 
   return (
     <Card
@@ -77,11 +92,19 @@ const ItemSection = () => {
       </Button>
 
       {hasItems && (
-        <div className="border-outline-base flex items-center justify-between border-t pt-3">
-          <span className="text-on-surface-muted text-sm">{ITEMS_TEXT.totalLabel}</span>
-          <span className="tabular text-on-surface-base text-base font-semibold">
-            {formatWon(totalAmount)}
-          </span>
+        <div className="border-outline-base flex flex-col gap-2 border-t pt-3">
+          <div className="flex items-center justify-between">
+            <span className="text-on-surface-muted text-sm">{ITEMS_TEXT.totalLabel}</span>
+            <span className="tabular text-on-surface-base text-base font-semibold">
+              {formatWon(totalAmount)}
+            </span>
+          </div>
+
+          {excludedCount > 0 && (
+            <p role="status" className="text-danger-text text-xs">
+              {ITEMS_TEXT.excludedNotice(excludedCount)}
+            </p>
+          )}
         </div>
       )}
     </Card>

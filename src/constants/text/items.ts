@@ -6,9 +6,10 @@ export const ITEMS_TEXT = {
   addAction: '항목 추가',
 
   nameLabel: '항목 이름',
-  namePlaceholder: '고기, 바베큐장 이용료',
+  namePlaceholder: '바베큐장 이용료',
   amountLabel: '금액',
-  removeAction: (name: string) => `${name === '' ? '이름 없는 항목' : name} 삭제`,
+  /** 이름이 없는 항목도 목록에서 구분되어야 한다. 행 묶음의 이름으로 쓴다. */
+  rowLabel: (name: string) => (name === '' ? '이름 없는 항목' : name),
 
   empty: '함께 쓴 돈을 항목으로 넣어 주세요',
   /** 항목은 부담할 사람이 있어야 만들 수 있다. 결제자도 참여자 중에서 정해진다. */
@@ -22,6 +23,8 @@ export const ITEMS_TEXT = {
    * 뭔가 적혀 있으면 그게 곧 "여긴 예외" 라는 신호다.
    */
   summary: {
+    /** 결제자가 없으면 이 항목은 정산에서 통째로 빠진다. */
+    noPayer: '결제자 없음',
     noParticipants: '부담할 사람이 없어요',
     partial: (participantCount: number) => `${participantCount}명만 부담`,
     full: (name: string) => `${name} 전액`,
@@ -30,4 +33,6 @@ export const ITEMS_TEXT = {
 
   count: (total: number) => `${total}개`,
   totalLabel: '합계',
+  /** 합계에서 빠진 항목이 있으면 이유를 알린다. 5.4 에서 결제자를 고를 수 있게 된다. */
+  excludedNotice: (count: number) => `결제자가 없는 항목 ${count}개는 합계에서 빠졌어요`,
 } as const;

@@ -142,7 +142,7 @@ const AmountField = ({
         {/* 단위는 눈으로도 보이고 스크린리더로도 읽혀야 한다. 입력칸 밖이라 aria-describedby 로 묶는다 */}
         <span
           id={unitId}
-          className={cn('text-on-surface-muted pl-2 text-sm', isUnitHidden && 'sr-only')}
+          className={cn('text-on-surface-muted text-sm', isUnitHidden ? 'sr-only' : 'pl-2')}
         >
           원
         </span>
