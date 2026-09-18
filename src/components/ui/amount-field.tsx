@@ -16,6 +16,13 @@ type OmittedProps = 'id' | 'value' | 'defaultValue' | 'onChange' | 'type';
 interface Props extends Omit<InputHTMLAttributes<HTMLInputElement>, OmittedProps> {
   label: string;
   isLabelHidden?: boolean;
+  /**
+   * "원" 표기를 화면에서만 숨긴다. 스크린리더에는 그대로 읽힌다.
+   *
+   * 좁은 행 안에서는 단위가 자릿수를 밀어낸다. 금액인 게 자명한 자리라면 숨겨서
+   * 숫자에 폭을 몰아주는 편이 낫다.
+   */
+  isUnitHidden?: boolean;
   /** 정수 원 단위. */
   value: number;
   onValueChange: (won: number) => void;
@@ -55,6 +62,7 @@ const findCaretAfterDigits = (text: string, digitCount: number): number => {
 const AmountField = ({
   label,
   isLabelHidden = false,
+  isUnitHidden = false,
   value,
   onValueChange,
   className,
@@ -104,7 +112,7 @@ const AmountField = ({
     .join(' ');
 
   return (
-    <div className={cn('flex flex-col gap-2', className)}>
+    <div className={cn('flex flex-col', className)}>
       <label
         htmlFor={inputId}
         className={cn('text-on-surface-muted text-sm font-medium', isLabelHidden && 'sr-only')}
@@ -112,7 +120,12 @@ const AmountField = ({
         {label}
       </label>
 
-      <div className="bg-surface-raised border-outline-base focus-ring-within flex h-12 items-center rounded-xl border pr-4">
+      <div
+        className={cn(
+          'bg-surface-raised border-outline-base focus-ring-within mt-2 flex h-12 items-center rounded-xl border',
+          !isUnitHidden && 'pr-4',
+        )}
+      >
         <input
           ref={inputRef}
           id={inputId}
@@ -127,17 +140,27 @@ const AmountField = ({
           {...props}
         />
         {/* 단위는 눈으로도 보이고 스크린리더로도 읽혀야 한다. 입력칸 밖이라 aria-describedby 로 묶는다 */}
-        <span id={unitId} className="text-on-surface-muted pl-2 text-sm">
+        <span
+          id={unitId}
+          className={cn('text-on-surface-muted text-sm', isUnitHidden ? 'sr-only' : 'pl-2')}
+        >
           원
         </span>
       </div>
 
-      {/* 상한에서 잘렸다는 사실을 알려준다. 없으면 키가 안 먹는 것처럼 보인다 */}
-      {isMaxReached && (
-        <p id={noticeId} role="status" className="text-on-surface-muted text-xs">
-          {COMMON_TEXT.maxAmountReached}
-        </p>
-      )}
+      {/*
+        상한에서 잘렸다는 사실을 알려준다. 없으면 키가 안 먹는 것처럼 보인다.
+
+        비어 있어도 DOM 에 남겨 둔다. 라이브 영역은 내용이 바뀌기 전부터 자리에 있어야
+        스크린리더가 변화를 읽는다. 알림이 뜨는 순간 요소째 나타나면 대부분 읽히지 않는다.
+      */}
+      <p
+        id={noticeId}
+        role="status"
+        className={cn('text-on-surface-muted text-xs', isMaxReached && 'mt-2')}
+      >
+        {isMaxReached ? COMMON_TEXT.maxAmountReached : ''}
+      </p>
     </div>
   );
 };

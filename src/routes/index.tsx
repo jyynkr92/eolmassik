@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 
 import { COMMON_TEXT } from '@/constants/text/common';
 import { HOME_TEXT } from '@/constants/text/home';
+import ItemSection from '@/features/items/item-section';
 import ParticipantSection from '@/features/participants/participant-section';
 
 /**
@@ -17,6 +18,7 @@ const HomePage = () => {
       </header>
 
       <ParticipantSection />
+      <ItemSection />
     </main>
   );
 };

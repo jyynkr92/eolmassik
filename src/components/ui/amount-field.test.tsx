@@ -90,13 +90,14 @@ describe('AmountField', () => {
     expect(screen.getByRole('status')).toHaveTextContent(COMMON_TEXT.maxAmountReached);
   });
 
-  it('상한 안에서는 안내 문구를 띄우지 않는다', async () => {
+  // 라이브 영역은 내용이 바뀌기 전부터 자리에 있어야 스크린리더가 변화를 읽는다
+  it('상한 안에서는 안내 자리를 비워 둔다', async () => {
     const user = userEvent.setup();
     render(<ControlledAmountField />);
 
     await user.type(getInput(), `${MAX_AMOUNT}`);
 
-    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
   });
 
   it('단위와 호출부가 넘긴 설명을 모두 연결한다', () => {
