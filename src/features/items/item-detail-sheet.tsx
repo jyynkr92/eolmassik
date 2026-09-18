@@ -63,6 +63,10 @@ const ItemDetailSheet = ({
   onRemove,
 }: Props) => {
   const panelId = useId();
+  // NOTE: 펼침은 계산 데이터와 분리한다. 0원 부담도 잔차 흡수자에 영향을 줄 수 있다.
+  const [expandedParticipantIds, setExpandedParticipantIds] = useState<string[]>(() =>
+    item.extraCharges.map((charge) => charge.participantId),
+  );
   /** 삭제 확인 화면을 보고 있는지. 시트를 겹치지 않고 이 시트의 내용을 갈아 끼운다. */
   const [isRemoveConfirming, setIsRemoveConfirming] = useState(false);
 
@@ -71,31 +75,31 @@ const ItemDetailSheet = ({
   const chargeById = new Map(item.extraCharges.map((charge) => [charge.participantId, charge]));
   const bearerIds = new Set(item.participantIds);
 
-  /**
-   * 추가 부담을 넣거나 뺀다. 넣을 때는 0원으로 시작한다.
-   *
-   * 0원 부담은 요약줄에도 계산에도 잡히지 않아서, 펼쳐만 두고 금액을 안 넣은 상태가
-   * 아무것도 안 한 것과 같아진다. 펼침 상태를 따로 기억하지 않아도 되는 이유다.
-   */
   const handleExtraChargeToggle = (participantId: string) => {
-    if (chargeById.has(participantId)) {
+    if (expandedParticipantIds.includes(participantId)) {
+      setExpandedParticipantIds((ids) => ids.filter((id) => id !== participantId));
       onExtraChargeRemove(item.id, participantId);
       return;
     }
 
-    onExtraChargeChange(item.id, { participantId, type: 'amount', value: 0 });
+    setExpandedParticipantIds((ids) => [...ids, participantId]);
   };
 
-  const handleFullChargeToggle = (charge: ExtraCharge) => {
-    const next: ExtraCharge =
-      charge.type === 'full'
-        ? { participantId: charge.participantId, type: 'amount', value: 0 }
-        : { participantId: charge.participantId, type: 'full' };
+  const handleFullChargeToggle = (participantId: string) => {
+    if (chargeById.get(participantId)?.type === 'full') {
+      onExtraChargeRemove(item.id, participantId);
+      return;
+    }
 
-    onExtraChargeChange(item.id, next);
+    onExtraChargeChange(item.id, { participantId, type: 'full' });
   };
 
   const handleChargeAmountChange = (participantId: string, value: number) => {
+    if (value === 0) {
+      onExtraChargeRemove(item.id, participantId);
+      return;
+    }
+
     onExtraChargeChange(item.id, { participantId, type: 'amount', value });
   };
 
@@ -168,6 +172,8 @@ const ItemDetailSheet = ({
           <ul className="mt-2 flex flex-col gap-1">
             {participants.map((participant) => {
               const charge = chargeById.get(participant.id);
+              const isExpanded = expandedParticipantIds.includes(participant.id);
+              const isFullCharge = charge?.type === 'full';
               const chargePanelId = `${panelId}-${participant.id}`;
 
               return (
@@ -185,36 +191,41 @@ const ItemDetailSheet = ({
                       isIconOnly
                       variant="ghost"
                       aria-label={
-                        charge
+                        isExpanded
                           ? DETAIL_TEXT.extraChargeRemoveAction(participant.name)
                           : DETAIL_TEXT.extraChargeAction(participant.name)
                       }
-                      aria-expanded={charge !== undefined}
-                      {...(charge !== undefined && { 'aria-controls': chargePanelId })}
+                      aria-expanded={isExpanded}
+                      {...(isExpanded && { 'aria-controls': chargePanelId })}
                       onClick={() => handleExtraChargeToggle(participant.id)}
                       className="shrink-0"
                     >
-                      {charge ? <Minus size={18} aria-hidden /> : <Plus size={18} aria-hidden />}
+                      {isExpanded ? (
+                        <Minus size={18} aria-hidden />
+                      ) : (
+                        <Plus size={18} aria-hidden />
+                      )}
                     </Button>
                   </div>
 
-                  {charge && (
+                  {isExpanded && (
                     <div id={chargePanelId} className="flex items-center gap-2 pr-1 pb-2 pl-10">
-                      {/* 전액이면 금액은 항목 금액으로 고정이다. 칸을 숨기는 대신 잠가서
-                          얼마를 지게 되는지 그대로 보여준다 */}
+                      {/* 전액 부담자가 여러 명이거나 지정 부담이 있으면 실제 분담액을 보여준다. */}
                       <AmountField
                         label={DETAIL_TEXT.extraChargeLabel(participant.name)}
                         isLabelHidden
                         placeholder={DETAIL_TEXT.extraChargePlaceholder}
-                        value={charge.type === 'full' ? item.amount : (charge.value ?? 0)}
+                        value={
+                          isFullCharge ? (shareById.get(participant.id) ?? 0) : (charge?.value ?? 0)
+                        }
                         onValueChange={(value) => handleChargeAmountChange(participant.id, value)}
-                        disabled={charge.type === 'full'}
+                        disabled={isFullCharge}
                         className="min-w-0 flex-1"
                       />
 
                       <Chip
-                        isSelected={charge.type === 'full'}
-                        onClick={() => handleFullChargeToggle(charge)}
+                        isSelected={isFullCharge}
+                        onClick={() => handleFullChargeToggle(participant.id)}
                         className="shrink-0"
                       >
                         {DETAIL_TEXT.fullChargeAction}

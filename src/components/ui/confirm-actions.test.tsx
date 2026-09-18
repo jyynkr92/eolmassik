@@ -22,9 +22,9 @@ describe('ConfirmActions', () => {
   });
 
   // 화면이 바뀐 것을 스크린리더가 그 순간 읽어야 한다
-  it('실행 버튼으로 포커스를 옮긴다', () => {
+  it('취소 버튼으로 포커스를 옮긴다', () => {
     render(<ConfirmActions onCancel={vi.fn()} onConfirm={vi.fn()} />);
 
-    expect(screen.getByRole('button', { name: '삭제' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: '취소' })).toHaveFocus();
   });
 });

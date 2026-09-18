@@ -43,6 +43,8 @@ const ItemSection = () => {
    */
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  // NOTE: 같은 항목을 다시 열어도 삭제 확인과 펼침 상태를 초기화한다.
+  const [openSeq, setOpenSeq] = useState(0);
 
   /**
    * 입력이 바뀔 때마다 스토어에 쓴다. persist 가 동기로 localStorage 에 쓰므로 키 입력마다
@@ -59,6 +61,7 @@ const ItemSection = () => {
 
   const handleOpenDetail = (itemId: string) => {
     setSelectedItemId(itemId);
+    setOpenSeq((seq) => seq + 1);
     setIsSheetOpen(true);
   };
 
@@ -143,6 +146,7 @@ const ItemSection = () => {
 
       {selectedItem && (
         <ItemDetailSheet
+          key={openSeq}
           item={selectedItem}
           participants={participants}
           options={options}

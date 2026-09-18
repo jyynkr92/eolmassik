@@ -43,6 +43,12 @@ const getBearerRow = (name: string) => screen.getByRole('checkbox', { name: new 
 const getExtraChargeToggle = (name: string) =>
   screen.getByRole('button', { name: new RegExp(`^${name} 추가 부담$`) });
 
+const getButtonAt = (name: string, index: number) => {
+  const button = screen.getAllByRole('button', { name })[index];
+  if (!button) throw new Error(`${name} 버튼 ${index}이 없습니다`);
+  return button;
+};
+
 describe('항목 상세 시트', () => {
   beforeEach(() => {
     useSettlementStore.getState().actions.reset();
@@ -166,6 +172,75 @@ describe('항목 상세 시트', () => {
       expect(screen.queryByText(/은정이네 \+/)).not.toBeInTheDocument();
     });
   });
+
+  it('제외된 결제자의 추가 부담을 펼치거나 비워도 잔돈 배분을 바꾸지 않는다', async () => {
+    const user = userEvent.setup();
+    render(<ItemSection />);
+    await openDetail(user, '10001');
+    await user.click(getBearerRow('민수'));
+
+    const expectOriginalShares = () => {
+      expect(getBearerRow('민수')).toHaveAccessibleName(/민수\s*0원/);
+      expect(getBearerRow('은정이네')).toHaveAccessibleName(/은정이네\s*5,001원/);
+      expect(getBearerRow('지영')).toHaveAccessibleName(/지영\s*5,000원/);
+    };
+    expectOriginalShares();
+    await user.click(getExtraChargeToggle('민수'));
+    expect(firstItem()?.extraCharges).toEqual([]);
+    expectOriginalShares();
+
+    await user.type(screen.getByLabelText('민수 추가 부담 금액'), '100');
+    await user.clear(screen.getByLabelText('민수 추가 부담 금액'));
+    expect(firstItem()?.extraCharges).toEqual([]);
+    expectOriginalShares();
+
+    await user.click(screen.getByRole('button', { name: '전액' }));
+    await user.click(screen.getByRole('button', { name: '전액' }));
+    expect(firstItem()?.extraCharges).toEqual([]);
+    expectOriginalShares();
+  });
+
+  it('전액 입력칸은 다른 사람의 지정 부담을 뺀 실제 부담액을 표시한다', async () => {
+    const user = userEvent.setup();
+    render(<ItemSection />);
+    await openDetail(user, '30000');
+    await user.click(getExtraChargeToggle('민수'));
+    await user.type(screen.getByLabelText('민수 추가 부담 금액'), '10000');
+    await user.click(getExtraChargeToggle('은정이네'));
+    await user.click(getButtonAt('전액', 1));
+
+    expect(screen.getByLabelText('은정이네 추가 부담 금액')).toHaveValue('20,000');
+    expect(getBearerRow('은정이네')).toHaveAccessibleName(/은정이네\s*20,000원/);
+
+    await user.click(getExtraChargeToggle('지영'));
+    await user.click(getButtonAt('전액', 2));
+    expect(screen.getByLabelText('은정이네 추가 부담 금액')).toHaveValue('10,000');
+    expect(screen.getByLabelText('지영 추가 부담 금액')).toHaveValue('10,000');
+  });
+
+  it.each(['닫기', 'Escape'])(
+    '삭제 확인에서 %s 후 같은 항목과 다른 항목은 편집 화면으로 열린다',
+    async (closeAction) => {
+      const user = userEvent.setup();
+      render(<ItemSection />);
+      await user.click(screen.getByRole('button', { name: '항목 추가' }));
+      await user.click(screen.getByRole('button', { name: '항목 추가' }));
+
+      for (const nextIndex of [0, 1]) {
+        await user.click(getButtonAt('상세 설정', 0));
+        await user.click(screen.getByRole('button', { name: '항목 삭제하기' }));
+        expect(screen.getByRole('button', { name: '취소' })).toHaveFocus();
+        if (closeAction === 'Escape') await user.keyboard('{Escape}');
+        else await user.click(screen.getByRole('button', { name: '닫기' }));
+
+        await user.click(getButtonAt('상세 설정', nextIndex));
+        expect(screen.getByRole('button', { name: '적용' })).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: '취소' })).not.toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: '적용' }));
+      }
+      expect(settlementInStore().items).toHaveLength(2);
+    },
+  );
 
   // 항목 상세는 스토어에 바로 쓰므로 적용은 닫기와 같다. 끝나는 지점이 있어야 한다
   it('적용 버튼으로 시트를 닫는다', async () => {
