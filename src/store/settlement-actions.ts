@@ -8,6 +8,7 @@
  * 대상이 없으면 **원본 객체를 그대로 반환**한다. 새 객체를 만들면 selector 가 바뀐 줄 알고
  * 리렌더를 일으킨다.
  */
+import { hasPayer } from '@/lib/items/has-payer';
 import { createUuid } from '@/lib/uuid';
 import type { ExtraCharge, Item, Options, Participant, Settlement } from '@/types/settlement';
 
@@ -149,6 +150,30 @@ export const addItemTo = (settlement: Settlement, name = ''): Settlement => {
     extraCharges: [],
   };
   return { ...settlement, items: [...settlement.items, item] };
+};
+
+/**
+ * 결제자가 빠진 항목을 기본 결제자로 한 번에 채운다.
+ *
+ * 기본 결제자를 참여자에서 지우면 그 사람이 결제자였던 항목의 `payerId` 가 전부 비고,
+ * 그 항목들은 정산에서 통째로 빠진다. 사람 하나 지웠다고 항목마다 상세 시트를 열어
+ * 다시 고르게 할 일은 아니다.
+ *
+ * **이미 결제자가 있는 항목은 건드리지 않는다.** 일부러 다른 사람으로 지정해 둔 항목까지
+ * 덮으면 되돌릴 방법이 없고, 결제자가 바뀌면 송금 방향까지 바뀐다.
+ */
+export const applyDefaultPayerToItems = (settlement: Settlement): Settlement => {
+  const { defaultPayerId, participants } = settlement;
+
+  const hasDefaultPayer = participants.some((participant) => participant.id === defaultPayerId);
+  if (defaultPayerId === null || !hasDefaultPayer) return settlement;
+
+  const items = settlement.items.map((item) =>
+    hasPayer(item, participants) ? item : { ...item, payerId: defaultPayerId },
+  );
+  if (items.every((item, index) => item === settlement.items[index])) return settlement;
+
+  return { ...settlement, items };
 };
 
 export const updateItemIn = (

@@ -6,6 +6,7 @@ import type { Item, Settlement } from '@/types/settlement';
 import {
   addItemTo,
   addParticipantTo,
+  applyDefaultPayerToItems,
   removeExtraChargeFrom,
   removeItemFrom,
   removeParticipantFrom,
@@ -150,6 +151,50 @@ describe('addItemTo', () => {
 
     expect(item.payerId).toBe('');
     expect(item.participantIds).toEqual([]);
+  });
+});
+
+describe('applyDefaultPayerToItems', () => {
+  /** 기본 결제자였던 첫 참여자를 지워, 항목의 결제자 자리가 빈 상태를 만든다. */
+  const withPayerlessItems = () => {
+    const { settlement, ids } = withParticipants(['은정이네', '민수']);
+    const withItems = addItemTo(addItemTo(settlement, '고기'), '마트');
+
+    return removeParticipantFrom(withItems, ids[0] ?? '');
+  };
+
+  it('결제자가 빠진 항목을 기본 결제자로 채운다', () => {
+    const settlement = withPayerlessItems();
+    const applied = applyDefaultPayerToItems(settlement);
+
+    expect(settlement.items.map((item) => item.payerId)).toEqual(['', '']);
+    expect(applied.items.map((item) => item.payerId)).toEqual([
+      applied.defaultPayerId,
+      applied.defaultPayerId,
+    ]);
+  });
+
+  // 일부러 다른 사람으로 지정해 둔 항목까지 덮으면 송금 방향이 바뀐다
+  it('이미 결제자가 있는 항목은 건드리지 않는다', () => {
+    const { settlement, ids } = withParticipants(['은정이네', '민수']);
+    const withItem = addItemTo(settlement, '고기');
+    const withOtherPayer = updateItemIn(withItem, lastItem(withItem).id, { payerId: ids[1] ?? '' });
+
+    expect(applyDefaultPayerToItems(withOtherPayer)).toBe(withOtherPayer);
+  });
+
+  it('채울 항목이 없으면 원본을 그대로 돌려준다', () => {
+    const { settlement } = withParticipants(['은정이네']);
+    const withItem = addItemTo(settlement, '고기');
+
+    expect(applyDefaultPayerToItems(withItem)).toBe(withItem);
+  });
+
+  // 참여자를 전부 지우면 기본 결제자도 없다. 채워 넣을 사람이 없다
+  it('기본 결제자가 없으면 아무것도 하지 않는다', () => {
+    const settlement = addItemTo(emptySettlement(), '고기');
+
+    expect(applyDefaultPayerToItems(settlement)).toBe(settlement);
   });
 });
 

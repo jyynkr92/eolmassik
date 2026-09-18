@@ -1,0 +1,193 @@
+import { act, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { beforeEach, describe, expect, it } from 'vitest';
+
+import { useSettlementStore } from '@/store/settlement-store';
+
+import ItemSection from './item-section';
+
+type User = ReturnType<typeof userEvent.setup>;
+
+const settlementInStore = () => useSettlementStore.getState().settlement;
+const firstItem = () => settlementInStore().items[0];
+const participantNamed = (name: string) => {
+  const participant = settlementInStore().participants.find((it) => it.name === name);
+  if (!participant) throw new Error(`참여자 ${name} 이 없습니다`);
+
+  return participant;
+};
+
+const addParticipants = (...names: string[]) => {
+  const { addParticipant } = useSettlementStore.getState().actions;
+  for (const name of names) addParticipant(name);
+};
+
+/**
+ * 항목 하나를 만들고 상세 시트를 연다.
+ *
+ * 금액은 열기 전에 채운다. 금액 칸은 행에 있고 시트가 그 위를 덮으므로, 열어 둔 채로는
+ * 누를 수 없다.
+ */
+const openDetail = async (user: User, amount?: string) => {
+  await user.click(screen.getByRole('button', { name: '항목 추가' }));
+  if (amount !== undefined) await user.type(screen.getByLabelText('금액'), amount);
+
+  await user.click(screen.getByRole('button', { name: '상세 설정' }));
+
+  return screen.findByRole('dialog');
+};
+
+/** 부담자 행의 체크박스. 인원이 2 이상이면 이름 뒤에 인원이 붙는다. */
+const getBearerRow = (name: string) => screen.getByRole('checkbox', { name: new RegExp(name) });
+
+const getExtraChargeToggle = (name: string) =>
+  screen.getByRole('button', { name: new RegExp(`^${name} 추가 부담$`) });
+
+describe('항목 상세 시트', () => {
+  beforeEach(() => {
+    useSettlementStore.getState().actions.reset();
+    addParticipants('민수', '은정이네', '지영');
+  });
+
+  describe('결제자', () => {
+    it('결제자를 바꾼다', async () => {
+      const user = userEvent.setup();
+      render(<ItemSection />);
+      await openDetail(user);
+
+      const dialog = await screen.findByRole('dialog');
+      await user.click(within(dialog).getByRole('button', { name: '지영' }));
+
+      expect(firstItem()?.payerId).toBe(participantNamed('지영').id);
+    });
+
+    // 결제자 없는 항목은 정산에서 통째로 빠진다. 되돌릴 화면이 여기밖에 없다
+    it('결제자가 없으면 정산에서 빠진다고 알린다', async () => {
+      const user = userEvent.setup();
+      render(<ItemSection />);
+      await openDetail(user);
+
+      expect(screen.getByText('이 항목을 실제로 결제한 사람이에요')).toBeInTheDocument();
+
+      // 기본 결제자였던 사람을 지우면 이 항목의 결제자 자리가 빈다
+      act(() => {
+        useSettlementStore.getState().actions.removeParticipant(participantNamed('민수').id);
+      });
+
+      expect(screen.getByText('결제자를 골라야 이 항목이 정산에 들어가요')).toBeInTheDocument();
+    });
+  });
+
+  describe('부담자', () => {
+    it('체크를 풀면 그 사람은 부담자에서 빠진다', async () => {
+      const user = userEvent.setup();
+      render(<ItemSection />);
+      await openDetail(user);
+
+      await user.click(getBearerRow('지영'));
+
+      expect(firstItem()?.participantIds).not.toContain(participantNamed('지영').id);
+
+      await user.click(getBearerRow('지영'));
+
+      expect(firstItem()?.participantIds).toContain(participantNamed('지영').id);
+    });
+
+    // 시트의 금액과 결과 화면의 금액이 다르면 어느 쪽을 믿어야 할지 알 수 없다
+    it('부담액을 행마다 보여주고 토글에 맞춰 바꾼다', async () => {
+      const user = userEvent.setup();
+      render(<ItemSection />);
+      await openDetail(user, '30000');
+
+      expect(getBearerRow('민수')).toHaveAccessibleName(/10,000원/);
+
+      await user.click(getBearerRow('지영'));
+
+      expect(getBearerRow('민수')).toHaveAccessibleName(/15,000원/);
+      expect(getBearerRow('지영')).toHaveAccessibleName(/0원/);
+    });
+  });
+
+  describe('추가 부담', () => {
+    it('금액을 넣으면 나머지 사람의 부담액이 바로 줄어든다', async () => {
+      const user = userEvent.setup();
+      render(<ItemSection />);
+      await openDetail(user, '30000');
+
+      await user.click(getExtraChargeToggle('은정이네'));
+      await user.type(screen.getByLabelText('은정이네 추가 부담 금액'), '12000');
+
+      expect(firstItem()?.extraCharges).toEqual([
+        { participantId: participantNamed('은정이네').id, type: 'amount', value: 12000 },
+      ]);
+      expect(getBearerRow('민수')).toHaveAccessibleName(/6,000원/);
+      expect(getBearerRow('은정이네')).toHaveAccessibleName(/18,000원/);
+    });
+
+    it('전액 토글을 켜면 그 사람이 항목 금액을 다 진다', async () => {
+      const user = userEvent.setup();
+      render(<ItemSection />);
+      await openDetail(user, '30000');
+
+      await user.click(getExtraChargeToggle('은정이네'));
+      await user.click(screen.getByRole('button', { name: '전액' }));
+
+      expect(firstItem()?.extraCharges).toEqual([
+        { participantId: participantNamed('은정이네').id, type: 'full' },
+      ]);
+      expect(getBearerRow('은정이네')).toHaveAccessibleName(/30,000원/);
+      expect(getBearerRow('민수')).toHaveAccessibleName(/0원/);
+
+      // 전액일 때 금액은 항목 금액으로 고정이라 칸을 잠근다
+      expect(screen.getByLabelText('은정이네 추가 부담 금액')).toBeDisabled();
+    });
+
+    it('다시 누르면 추가 부담이 사라진다', async () => {
+      const user = userEvent.setup();
+      render(<ItemSection />);
+      await openDetail(user);
+
+      await user.click(getExtraChargeToggle('은정이네'));
+      await user.click(screen.getByRole('button', { name: '은정이네 추가 부담 빼기' }));
+
+      expect(firstItem()?.extraCharges).toEqual([]);
+      expect(screen.queryByLabelText('은정이네 추가 부담 금액')).not.toBeInTheDocument();
+    });
+
+    // 0원 부담은 부담이 아니다. 펼쳐만 두고 만 상태가 아무것도 안 한 것과 같아야 한다
+    it('펼치기만 하면 요약줄에 아무것도 붙지 않는다', async () => {
+      const user = userEvent.setup();
+      render(<ItemSection />);
+      await openDetail(user);
+
+      await user.click(getExtraChargeToggle('은정이네'));
+      await user.keyboard('{Escape}');
+
+      expect(screen.queryByText(/은정이네 \+/)).not.toBeInTheDocument();
+    });
+  });
+
+  // 항목 상세는 스토어에 바로 쓰므로 적용은 닫기와 같다. 끝나는 지점이 있어야 한다
+  it('적용 버튼으로 시트를 닫는다', async () => {
+    const user = userEvent.setup();
+    render(<ItemSection />);
+    await openDetail(user);
+
+    await user.click(screen.getByRole('button', { name: '적용' }));
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  // 시트에서 고친 값이 그 자리에서 요약줄로 이어져야 한다
+  it('시트에서 고친 내용이 행 요약에 반영된다', async () => {
+    const user = userEvent.setup();
+    render(<ItemSection />);
+    await openDetail(user, '30000');
+
+    await user.click(getExtraChargeToggle('은정이네'));
+    await user.type(screen.getByLabelText('은정이네 추가 부담 금액'), '12000');
+    await user.keyboard('{Escape}');
+
+    expect(screen.getByText(/은정이네 \+12,000/)).toBeInTheDocument();
+  });
+});

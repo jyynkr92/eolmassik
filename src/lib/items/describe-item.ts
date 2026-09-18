@@ -6,9 +6,15 @@ import type { ItemNotice } from './types';
 /**
  * 항목 행에 알릴 사실들을 추린다. 기획설계 5.3
  *
- * 기본값에서 벗어난 것만 담는다. 전원이 추가 부담 없이 똑같이 나누는 항목은 빈 배열이라
- * 행에 아무것도 그리지 않는다. 모든 행에 "5명 N빵" 을 적으면 열 줄 중 아홉 줄이 같은 말이라
- * 정작 예외인 한 줄이 묻힌다.
+ * **결제자는 항상 담고, 나머지는 기본값에서 벗어난 것만 담는다.**
+ *
+ * 부담자 구성은 "전원이 똑같이 나눈다"는 기본값을 눈으로 확인할 필요가 없어서, 벗어난
+ * 항목에만 적는다. 모든 행에 "5명 N빵" 을 적으면 열 줄 중 아홉 줄이 같은 말이라 정작
+ * 예외인 한 줄이 묻힌다.
+ *
+ * 결제자는 다르다. 기본값이랄 게 없고 항목마다 달라질 수 있는데, 행에 안 적으면 확인할
+ * 길이 상세 시트를 하나씩 여는 것뿐이다. 입력하는 사람이 "이거 누가 냈더라" 를 목록에서
+ * 바로 풀 수 있어야 한다.
  *
  * 금액 계산은 하지 않지만 **계산이 실제로 하는 일과 어긋나서는 안 된다.** 행에 적힌 말과
  * 결과 화면의 숫자가 다르면 어느 쪽을 믿어야 할지 알 수 없다.
@@ -42,8 +48,11 @@ export const describeItem = (item: Item, participants: Participant[]): ItemNotic
 
   const notices: ItemNotice[] = [];
 
-  // 결제자가 없으면 이 항목은 정산에서 빠진다. 가장 먼저 알린다
-  if (!hasPayer(item, participants)) notices.push({ kind: 'no-payer' });
+  // 결제자를 가장 먼저 알린다. 없으면 이 항목은 정산에서 통째로 빠진다
+  const payerName = hasPayer(item, participants) ? nameById.get(item.payerId) : undefined;
+  notices.push(
+    payerName === undefined ? { kind: 'no-payer' } : { kind: 'payer', participantName: payerName },
+  );
 
   /**
    * 부담자가 비면 `calculateItem` 이 결제자를 부담자로 세워 전액을 지운다. 기획설계 4.1
@@ -52,9 +61,8 @@ export const describeItem = (item: Item, participants: Participant[]): ItemNotic
    * 전액 부담자가 따로 있으면 그 폴백이 작동하지 않으므로 그쪽 알림이 설명을 맡고,
    * 결제자마저 없으면 이 항목은 0원이라 위의 알림만으로 충분하다.
    */
-  const payerName = nameById.get(item.payerId);
   if (participantCount === 0 && !hasFullCharge && payerName !== undefined) {
-    notices.push({ kind: 'payer-only', participantName: payerName });
+    notices.push({ kind: 'payer-only' });
   }
 
   if (participantCount > 0 && participantCount < participants.length) {

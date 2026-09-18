@@ -1,9 +1,8 @@
-import { Trash2 } from 'lucide-react';
+import { SlidersHorizontal } from 'lucide-react';
 
 import AmountField from '@/components/ui/amount-field';
 import Button from '@/components/ui/button';
 import TextField from '@/components/ui/text-field';
-import { COMMON_TEXT } from '@/constants/text/common';
 import { ITEMS_TEXT } from '@/constants/text/items';
 import { describeItem } from '@/lib/items/describe-item';
 import type { ItemNotice } from '@/lib/items/types';
@@ -16,15 +15,17 @@ interface Props {
   participants: Participant[];
   onNameChange: (itemId: string, name: string) => void;
   onAmountChange: (itemId: string, amount: number) => void;
-  onRemove: (itemId: string) => void;
+  onOpenDetail: (itemId: string) => void;
 }
 
 const describeNotice = (notice: ItemNotice): string => {
   switch (notice.kind) {
+    case 'payer':
+      return SUMMARY_TEXT.payer(notice.participantName);
     case 'no-payer':
       return SUMMARY_TEXT.noPayer;
     case 'payer-only':
-      return SUMMARY_TEXT.payerOnly(notice.participantName);
+      return SUMMARY_TEXT.payerOnly;
     case 'partial':
       return SUMMARY_TEXT.partial(notice.participantCount);
     case 'full-charge':
@@ -37,7 +38,7 @@ const describeNotice = (notice: ItemNotice): string => {
 /**
  * 항목 한 줄. 기획설계 5.3
  *
- * 이름과 금액만 행에서 바로 고친다. 결제자·부담자·추가 부담은 상세 시트가 맡는다.
+ * 이름과 금액만 행에서 바로 고친다. 결제자·부담자·추가 부담은 상세 시트가 맡는다. 기획설계 5.4
  * 대부분의 항목은 전원이 똑같이 나누므로, 자주 쓰는 두 필드만 꺼내 두면 상세를 열 일이
  * 거의 없다.
  *
@@ -45,12 +46,19 @@ const describeNotice = (notice: ItemNotice): string => {
  * 모든 행에서 같아서, 묶음 이름이 없으면 스크린리더로 훑을 때 지금 몇 번째 항목인지 알 수
  * 없다. 눈으로는 이미 입력칸 안에 이름이 보이므로 `sr-only` 로 감춘다.
  *
- * 요약은 예외인 항목에만 붙으므로 대부분의 항목이 한 줄로 끝난다.
+ * 요약줄은 결제자를 항상 적고, 나머지는 기본값에서 벗어난 것만 적는다. 결제자를 여기
+ * 두지 않으면 목록만 보고 "이거 누가 냈더라" 를 풀 길이 상세 시트뿐이다.
+ *
+ * 상세는 행 전체를 누르는 대신 버튼 하나로 연다. 행 안에 입력칸이 두 개라서 행 탭과
+ * 입력 포커스가 같은 제스처를 두고 부딪힌다.
+ *
+ * 삭제는 상세 시트로 내려보냈다. 360px 폭에서 이름·금액·상세·삭제를 한 줄에 놓으면 이름
+ * 칸이 40px 까지 밀려 글자가 보이지 않는다. 참여자도 칩을 눌러 연 시트에서 지운다.
  *
  * `min-w-0` 은 flex 항목의 기본 `min-width: auto` 를 푼다. 그대로 두면 입력칸이 고유
  * 너비 아래로 줄지 않아 행이 화면 밖으로 나간다.
  */
-const ItemRow = ({ item, participants, onNameChange, onAmountChange, onRemove }: Props) => {
+const ItemRow = ({ item, participants, onNameChange, onAmountChange, onOpenDetail }: Props) => {
   const notices = describeItem(item, participants);
 
   return (
@@ -86,15 +94,14 @@ const ItemRow = ({ item, participants, onNameChange, onAmountChange, onRemove }:
           <Button
             isIconOnly
             variant="ghost"
-            aria-label={COMMON_TEXT.remove}
-            onClick={() => onRemove(item.id)}
+            aria-label={ITEMS_TEXT.detail.openAction}
+            onClick={() => onOpenDetail(item.id)}
             className="shrink-0"
           >
-            <Trash2 size={18} aria-hidden />
+            <SlidersHorizontal size={18} aria-hidden />
           </Button>
         </div>
 
-        {/* 5.4 에서 상세 시트가 붙으면 이 줄이 시트를 여는 버튼이 된다 */}
         {notices.length > 0 && (
           <p className="text-on-surface-muted pl-1 text-xs">
             {notices.map(describeNotice).join(' · ')}
