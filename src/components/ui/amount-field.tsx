@@ -16,6 +16,13 @@ type OmittedProps = 'id' | 'value' | 'defaultValue' | 'onChange' | 'type';
 interface Props extends Omit<InputHTMLAttributes<HTMLInputElement>, OmittedProps> {
   label: string;
   isLabelHidden?: boolean;
+  /**
+   * "원" 표기를 화면에서만 숨긴다. 스크린리더에는 그대로 읽힌다.
+   *
+   * 좁은 행 안에서는 단위가 자릿수를 밀어낸다. 금액인 게 자명한 자리라면 숨겨서
+   * 숫자에 폭을 몰아주는 편이 낫다.
+   */
+  isUnitHidden?: boolean;
   /** 정수 원 단위. */
   value: number;
   onValueChange: (won: number) => void;
@@ -55,6 +62,7 @@ const findCaretAfterDigits = (text: string, digitCount: number): number => {
 const AmountField = ({
   label,
   isLabelHidden = false,
+  isUnitHidden = false,
   value,
   onValueChange,
   className,
@@ -112,7 +120,12 @@ const AmountField = ({
         {label}
       </label>
 
-      <div className="bg-surface-raised border-outline-base focus-ring-within flex h-12 items-center rounded-xl border pr-4">
+      <div
+        className={cn(
+          'bg-surface-raised border-outline-base focus-ring-within flex h-12 items-center rounded-xl border',
+          !isUnitHidden && 'pr-4',
+        )}
+      >
         <input
           ref={inputRef}
           id={inputId}
@@ -127,7 +140,10 @@ const AmountField = ({
           {...props}
         />
         {/* 단위는 눈으로도 보이고 스크린리더로도 읽혀야 한다. 입력칸 밖이라 aria-describedby 로 묶는다 */}
-        <span id={unitId} className="text-on-surface-muted pl-2 text-sm">
+        <span
+          id={unitId}
+          className={cn('text-on-surface-muted pl-2 text-sm', isUnitHidden && 'sr-only')}
+        >
           원
         </span>
       </div>
