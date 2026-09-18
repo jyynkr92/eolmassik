@@ -120,9 +120,14 @@ const AmountField = ({
         {label}
       </label>
 
+      {/*
+        라벨과의 간격은 라벨이 보일 때만 준다. `sr-only` 라벨은 absolute 라 자리를 차지하지
+        않는데 margin 만 남으면, 같은 행의 다른 입력칸보다 이 칸만 8px 내려가 앉는다.
+      */}
       <div
         className={cn(
-          'bg-surface-raised border-outline-base focus-ring-within mt-2 flex h-12 items-center rounded-xl border',
+          'bg-surface-raised border-outline-base focus-ring-within flex h-12 items-center rounded-xl border',
+          !isLabelHidden && 'mt-2',
           !isUnitHidden && 'pr-4',
         )}
       >
