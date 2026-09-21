@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createRef } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -109,6 +109,46 @@ describe('ResultSection', () => {
     expect(screen.getAllByText('4,000원')).toHaveLength(2);
   });
 
+  it('상세 항목을 독립적으로 열고 키보드로 닫을 수 있다', async () => {
+    const user = userEvent.setup();
+    const item = settlement.items[0];
+    if (!item) throw new Error('테스트 정산 항목이 없습니다');
+
+    useSettlementStore.getState().actions.replaceSettlement({
+      ...settlement,
+      items: [
+        item,
+        {
+          ...item,
+          id: 'market',
+          name: '마트',
+          amount: 8_000,
+          extraCharges: [],
+        },
+      ],
+    });
+    render(<ResultSection headingRef={createRef()} onEdit={vi.fn()} />);
+
+    const meatButton = screen.getByRole('button', { name: /고기/ });
+    const marketButton = screen.getByRole('button', { name: /마트/ });
+    const panel = document.getElementById(meatButton.getAttribute('aria-controls') ?? '');
+    if (!panel) throw new Error('상세 항목 패널이 없습니다');
+
+    expect(meatButton).toHaveAttribute('aria-expanded', 'false');
+    expect(panel).toHaveAttribute('aria-hidden', 'true');
+    expect(panel).toHaveAttribute('inert');
+
+    await user.click(meatButton);
+    expect(meatButton).toHaveAttribute('aria-expanded', 'true');
+    expect(panel).toHaveAttribute('aria-hidden', 'false');
+    expect(panel).not.toHaveAttribute('inert');
+    expect(marketButton).toHaveAttribute('aria-expanded', 'false');
+
+    await user.keyboard(' ');
+    expect(meatButton).toHaveAttribute('aria-expanded', 'false');
+    expect(panel).toHaveAttribute('aria-hidden', 'true');
+  });
+
   it('참여자별 headcount를 합산하고 결과 카드 제목의 단계를 구분한다', () => {
     useSettlementStore.getState().actions.replaceSettlement({
       ...settlement,
@@ -124,5 +164,71 @@ describe('ResultSection', () => {
     expect(screen.getByRole('heading', { level: 2, name: '정산 결과' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 3, name: '정산 결과' })).toBeInTheDocument();
     expect(screen.getAllByRole('region', { name: '정산 결과' })).toHaveLength(1);
+  });
+
+  it('정산 텍스트를 클립보드에 복사하고 성공을 알린다', async () => {
+    const user = userEvent.setup();
+    const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+    render(<ResultSection headingRef={createRef()} onEdit={vi.fn()} />);
+
+    const copyButton = screen.getByRole('button', { name: '텍스트 복사' });
+    await user.click(copyButton);
+
+    expect(writeText).toHaveBeenCalledWith(
+      '🧾 캠핑 정산 · 총 32,000원\n\n· 고기 32,000원 (민수 결제)\n부담: 민수 22,000원 · 은정 10,000원\n\n💸 정산\n은정 → 민수 10,000원',
+    );
+    expect(screen.getByRole('status')).toHaveTextContent('정산 내역을 복사했어요');
+    expect(screen.getByRole('status')).toHaveClass('animate-toast-in');
+    expect(screen.getByRole('status')).toHaveClass(
+      'bottom-[calc(env(safe-area-inset-bottom)+1.5rem)]',
+    );
+    expect(copyButton.querySelector('.lucide-check')).toBeInTheDocument();
+
+    await waitFor(() => expect(screen.getByRole('status')).toHaveClass('animate-toast-out'), {
+      timeout: 3000,
+    });
+    await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument(), {
+      timeout: 1000,
+    });
+    expect(copyButton.querySelector('.lucide-copy')).toBeInTheDocument();
+  });
+
+  it('클립보드 복사 실패를 알린다', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(navigator.clipboard, 'writeText').mockRejectedValue(new Error('NotAllowedError'));
+    render(<ResultSection headingRef={createRef()} onEdit={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: '텍스트 복사' }));
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      '복사하지 못했어요. 브라우저의 클립보드 권한을 확인해 주세요',
+    );
+  });
+
+  it('연속 복사에서는 이전 요청의 늦은 실패가 최신 성공을 덮지 않는다', async () => {
+    const user = userEvent.setup();
+    let rejectFirst: (reason: Error) => void = () => {};
+    const firstWrite = new Promise<void>((_resolve, reject) => {
+      rejectFirst = reject;
+    });
+    const writeText = vi
+      .spyOn(navigator.clipboard, 'writeText')
+      .mockImplementationOnce(() => firstWrite)
+      .mockResolvedValueOnce();
+    render(<ResultSection headingRef={createRef()} onEdit={vi.fn()} />);
+
+    const copyButton = screen.getByRole('button', { name: '텍스트 복사' });
+    await user.click(copyButton);
+    await user.click(copyButton);
+    expect(writeText).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole('status')).toHaveTextContent('정산 내역을 복사했어요');
+
+    await act(async () => {
+      rejectFirst(new Error('이전 복사 실패'));
+      await firstWrite.catch(() => {});
+    });
+
+    expect(screen.getByRole('status')).toHaveTextContent('정산 내역을 복사했어요');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 });

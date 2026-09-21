@@ -88,6 +88,8 @@
   --animate-sheet-out: sheet-out 180ms ease-in;
   --animate-overlay-in: overlay-in 220ms ease-out;
   --animate-overlay-out: overlay-out 180ms ease-in;
+  --animate-toast-in: toast-in 220ms ease-out;
+  --animate-toast-out: toast-out 180ms ease-in forwards;
 
   --font-sans:
     "SUIT Variable", -apple-system, BlinkMacSystemFont, system-ui, "Apple SD Gothic Neo",
@@ -199,5 +201,19 @@ body {
 @keyframes overlay-out {
   to {
     opacity: 0;
+  }
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@keyframes toast-out {
+  to {
+    opacity: 0;
+    transform: translateY(8px);
   }
 }
