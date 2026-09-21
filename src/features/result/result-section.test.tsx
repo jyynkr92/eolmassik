@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createRef } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -124,5 +124,41 @@ describe('ResultSection', () => {
     expect(screen.getByRole('heading', { level: 2, name: '정산 결과' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 3, name: '정산 결과' })).toBeInTheDocument();
     expect(screen.getAllByRole('region', { name: '정산 결과' })).toHaveLength(1);
+  });
+
+  it('정산 텍스트를 클립보드에 복사하고 성공을 알린다', async () => {
+    const user = userEvent.setup();
+    const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+    render(<ResultSection headingRef={createRef()} onEdit={vi.fn()} />);
+
+    const copyButton = screen.getByRole('button', { name: '텍스트 복사' });
+    await user.click(copyButton);
+
+    expect(writeText).toHaveBeenCalledWith(
+      '🧾 캠핑 정산 · 총 32,000원\n\n· 고기 32,000원 (민수 결제)\n부담: 민수 22,000원 · 은정 10,000원\n\n💸 정산\n은정 → 민수 10,000원',
+    );
+    expect(screen.getByRole('status')).toHaveTextContent('정산 내역을 복사했어요');
+    expect(screen.getByRole('status')).toHaveClass('animate-toast-in');
+    expect(copyButton.querySelector('.lucide-check')).toBeInTheDocument();
+
+    await waitFor(() => expect(screen.getByRole('status')).toHaveClass('animate-toast-out'), {
+      timeout: 3000,
+    });
+    await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument(), {
+      timeout: 1000,
+    });
+    expect(copyButton.querySelector('.lucide-copy')).toBeInTheDocument();
+  });
+
+  it('클립보드 복사 실패를 알린다', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(navigator.clipboard, 'writeText').mockRejectedValue(new Error('NotAllowedError'));
+    render(<ResultSection headingRef={createRef()} onEdit={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: '텍스트 복사' }));
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      '복사하지 못했어요. 브라우저의 클립보드 권한을 확인해 주세요',
+    );
   });
 });
