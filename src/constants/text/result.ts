@@ -2,6 +2,7 @@ import { formatWon } from '@/lib/format';
 
 /** [4] 결과. 기획설계 5.5 */
 export const RESULT_TEXT = {
+  pageLabel: '정산 내역 화면',
   title: '정산 결과',
   editAction: '수정하기',
   totalLabel: '전체 결제 금액',

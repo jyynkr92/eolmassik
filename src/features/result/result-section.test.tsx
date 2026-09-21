@@ -108,4 +108,21 @@ describe('ResultSection', () => {
     expect(screen.getByText('은정 결제 ·')).toBeInTheDocument();
     expect(screen.getAllByText('4,000원')).toHaveLength(2);
   });
+
+  it('참여자별 headcount를 합산하고 결과 카드 제목의 단계를 구분한다', () => {
+    useSettlementStore.getState().actions.replaceSettlement({
+      ...settlement,
+      title: '',
+      participants: settlement.participants.map((participant) =>
+        participant.id === 'minsu' ? { ...participant, headcount: 2 } : participant,
+      ),
+    });
+
+    render(<ResultSection headingRef={createRef()} onEdit={vi.fn()} />);
+
+    expect(screen.getByText('3명 · 1개 항목')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 2, name: '정산 결과' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 3, name: '정산 결과' })).toBeInTheDocument();
+    expect(screen.getAllByRole('region', { name: '정산 결과' })).toHaveLength(1);
+  });
 });

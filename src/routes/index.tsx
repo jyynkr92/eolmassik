@@ -16,20 +16,34 @@ import { useSettlementStore } from '@/store/settlement-store';
  */
 const HomePage = () => {
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const editorHeadingRef = useRef<HTMLHeadingElement>(null);
   const resultHeadingRef = useRef<HTMLHeadingElement>(null);
+  const hasSubmittedRef = useRef(false);
   const participants = useSettlementStore((state) => state.settlement.participants);
   const items = useSettlementStore((state) => state.settlement.items);
   const invalidCount = items.filter((item) => !hasPayer(item, participants)).length;
   const canSubmit = participants.length > 0 && items.length > 0 && invalidCount === 0;
 
   useEffect(() => {
-    if (isSubmitted) resultHeadingRef.current?.focus();
+    if (isSubmitted) {
+      hasSubmittedRef.current = true;
+      resultHeadingRef.current?.focus();
+      return;
+    }
+
+    if (hasSubmittedRef.current) editorHeadingRef.current?.focus();
   }, [isSubmitted]);
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 p-4 sm:p-6">
       <header>
-        <h1 className="text-on-surface-base text-2xl font-bold">{COMMON_TEXT.appName}</h1>
+        <h1
+          ref={editorHeadingRef}
+          tabIndex={-1}
+          className="focus-ring text-on-surface-base text-2xl font-bold"
+        >
+          {COMMON_TEXT.appName}
+        </h1>
         <p className="text-on-surface-muted mt-2 text-sm">{HOME_TEXT.tagline}</p>
       </header>
 

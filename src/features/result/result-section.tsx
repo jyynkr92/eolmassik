@@ -18,17 +18,18 @@ const ResultSection = ({ headingRef, onEdit }: Props) => {
   const settlement = useSettlementStore((state) => state.settlement);
   const result = calculateSettlement(settlement);
   const { participants, items } = settlement;
+  const totalHeadcount = participants.reduce((sum, participant) => sum + participant.headcount, 0);
   const nameById = new Map(participants.map((participant) => [participant.id, participant.name]));
   const itemResultById = new Map(result.itemResults.map((item) => [item.itemId, item]));
 
   return (
-    <section className="flex flex-col gap-4" aria-labelledby="result-heading">
+    <section aria-label={RESULT_TEXT.pageLabel} className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3">
         <h2
           id="result-heading"
           ref={headingRef}
           tabIndex={-1}
-          className="text-on-surface-base text-xl font-bold outline-none"
+          className="focus-ring text-on-surface-base text-xl font-bold"
         >
           <ReceiptText
             size={22}
@@ -42,17 +43,16 @@ const ResultSection = ({ headingRef, onEdit }: Props) => {
         </Button>
       </div>
 
-      <Card title={RESULT_TEXT.totalLabel} titleIcon={<Wallet size={18} />}>
+      <Card title={RESULT_TEXT.totalLabel} titleIcon={<Wallet size={18} />} headingLevel={3}>
         <strong className="tabular text-on-surface-base text-3xl">
           {formatWon(result.totalAmount)}
         </strong>
         <p className="text-on-surface-muted text-sm">
-          {RESULT_TEXT.participantCount(participants.length)} ·{' '}
-          {RESULT_TEXT.itemCount(items.length)}
+          {RESULT_TEXT.participantCount(totalHeadcount)} · {RESULT_TEXT.itemCount(items.length)}
         </p>
       </Card>
 
-      <Card title={RESULT_TEXT.transferTitle} titleIcon={<Send size={18} />}>
+      <Card title={RESULT_TEXT.transferTitle} titleIcon={<Send size={18} />} headingLevel={3}>
         {result.transfers.length === 0 ? (
           <p className="text-on-surface-muted text-sm">{RESULT_TEXT.noTransfer}</p>
         ) : (
@@ -87,7 +87,7 @@ const ResultSection = ({ headingRef, onEdit }: Props) => {
         )}
       </Card>
 
-      <Card title={RESULT_TEXT.balanceTitle} titleIcon={<UsersRound size={18} />}>
+      <Card title={RESULT_TEXT.balanceTitle} titleIcon={<UsersRound size={18} />} headingLevel={3}>
         <ul className="divide-outline-base divide-y">
           {result.balances.map((balance) => (
             <li
@@ -106,7 +106,7 @@ const ResultSection = ({ headingRef, onEdit }: Props) => {
         </ul>
       </Card>
 
-      <Card title={RESULT_TEXT.detailTitle} titleIcon={<List size={18} />}>
+      <Card title={RESULT_TEXT.detailTitle} titleIcon={<List size={18} />} headingLevel={3}>
         <ul className="flex flex-col gap-3">
           {items.map((item) => {
             const itemResult = itemResultById.get(item.id);
@@ -130,7 +130,7 @@ const ResultSection = ({ headingRef, onEdit }: Props) => {
                   <div className="border-outline-base mt-3 flex flex-col gap-3 border-t pt-3 text-sm">
                     {item.extraCharges.length > 0 && (
                       <div>
-                        <h3 className="text-on-surface-muted">{RESULT_TEXT.extraCharges}</h3>
+                        <h4 className="text-on-surface-muted">{RESULT_TEXT.extraCharges}</h4>
                         <ul className="text-on-surface-base mt-1">
                           {item.extraCharges.map((charge) => (
                             <li key={charge.participantId}>
@@ -146,7 +146,7 @@ const ResultSection = ({ headingRef, onEdit }: Props) => {
                       </div>
                     )}
                     <div>
-                      <h3 className="text-on-surface-base font-semibold">{RESULT_TEXT.shares}</h3>
+                      <h4 className="text-on-surface-base font-semibold">{RESULT_TEXT.shares}</h4>
                       <ul className="mt-1 flex flex-col gap-1">
                         {itemResult.shares.map((share) => (
                           <li key={share.participantId} className="flex justify-between gap-2">
