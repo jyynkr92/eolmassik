@@ -17,6 +17,7 @@ export const RESULT_TEXT = {
   owedLabel: '내 몫',
   detailTitle: '상세 항목',
   openDetail: '상세 보기',
+  closeDetail: '상세 접기',
   payer: (name: string) => `${name} 결제`,
   extraCharges: '설정한 추가 부담',
   fullCharge: (name: string) => `${name} 남은 금액 분담`,

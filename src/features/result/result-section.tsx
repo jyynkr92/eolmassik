@@ -1,9 +1,11 @@
+import { LazyMotion } from 'framer-motion';
 import { ArrowRight, Check, Copy, List, ReceiptText, Send, UsersRound, Wallet } from 'lucide-react';
 import { type RefObject, useEffect, useState } from 'react';
 
 import Button from '@/components/ui/button';
 import Card from '@/components/ui/card';
 import { RESULT_TEXT } from '@/constants/text/result';
+import ResultItemDetail from '@/features/result/result-item-detail';
 import { formatSettlementText } from '@/features/share/format-settlement-text';
 import { calculateSettlement } from '@/lib/calc';
 import { cn } from '@/lib/cn';
@@ -12,6 +14,8 @@ import { useSettlementStore } from '@/store/settlement-store';
 
 const COPY_FEEDBACK_DURATION_MS = 2500;
 const COPY_FEEDBACK_EXIT_MS = 180;
+const loadMotionFeatures = () =>
+  import('./motion-features').then(({ default: features }) => features);
 
 type CopyFeedback = { kind: 'success' | 'error'; phase: 'visible' | 'exiting' };
 
@@ -167,65 +171,23 @@ const ResultSection = ({ headingRef, onEdit }: Props) => {
       </Card>
 
       <Card title={RESULT_TEXT.detailTitle} titleIcon={<List size={18} />} headingLevel={3}>
-        <ul className="flex flex-col gap-3">
-          {items.map((item) => {
-            const itemResult = itemResultById.get(item.id);
-            if (!itemResult) return null;
+        <LazyMotion features={loadMotionFeatures} strict>
+          <ul className="flex flex-col gap-3">
+            {items.map((item) => {
+              const itemResult = itemResultById.get(item.id);
+              if (!itemResult) return null;
 
-            return (
-              <li key={item.id}>
-                <details className="border-outline-base rounded-xl border p-3">
-                  <summary className="focus-ring flex cursor-pointer list-none flex-wrap items-center justify-between gap-2 rounded-lg">
-                    <span className="text-on-surface-base font-semibold">
-                      {RESULT_TEXT.itemName(item.name)}
-                    </span>
-                    <span className="tabular text-on-surface-base font-semibold">
-                      {formatWon(item.amount)}
-                    </span>
-                    <span className="text-on-surface-muted w-full text-sm">
-                      {RESULT_TEXT.payer(nameById.get(item.payerId) ?? '')} ·{' '}
-                      <span className="text-accent-text">{RESULT_TEXT.openDetail}</span>
-                    </span>
-                  </summary>
-                  <div className="border-outline-base mt-3 flex flex-col gap-3 border-t pt-3 text-sm">
-                    {item.extraCharges.length > 0 && (
-                      <div>
-                        <h4 className="text-on-surface-muted">{RESULT_TEXT.extraCharges}</h4>
-                        <ul className="text-on-surface-base mt-1">
-                          {item.extraCharges.map((charge) => (
-                            <li key={charge.participantId}>
-                              {charge.type === 'full'
-                                ? RESULT_TEXT.fullCharge(nameById.get(charge.participantId) ?? '')
-                                : RESULT_TEXT.amountCharge(
-                                    nameById.get(charge.participantId) ?? '',
-                                    charge.value ?? 0,
-                                  )}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                    <div>
-                      <h4 className="text-on-surface-base font-semibold">{RESULT_TEXT.shares}</h4>
-                      <ul className="mt-1 flex flex-col gap-1">
-                        {itemResult.shares.map((share) => (
-                          <li key={share.participantId} className="flex justify-between gap-2">
-                            <span className="text-on-surface-muted">
-                              {nameById.get(share.participantId)}
-                            </span>
-                            <span className="tabular text-on-surface-base">
-                              {formatWon(share.amount)}
-                            </span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                </details>
-              </li>
-            );
-          })}
-        </ul>
+              return (
+                <ResultItemDetail
+                  key={item.id}
+                  item={item}
+                  itemResult={itemResult}
+                  nameById={nameById}
+                />
+              );
+            })}
+          </ul>
+        </LazyMotion>
       </Card>
     </section>
   );

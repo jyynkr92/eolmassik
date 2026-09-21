@@ -109,6 +109,46 @@ describe('ResultSection', () => {
     expect(screen.getAllByText('4,000원')).toHaveLength(2);
   });
 
+  it('상세 항목을 독립적으로 열고 키보드로 닫을 수 있다', async () => {
+    const user = userEvent.setup();
+    const item = settlement.items[0];
+    if (!item) throw new Error('테스트 정산 항목이 없습니다');
+
+    useSettlementStore.getState().actions.replaceSettlement({
+      ...settlement,
+      items: [
+        item,
+        {
+          ...item,
+          id: 'market',
+          name: '마트',
+          amount: 8_000,
+          extraCharges: [],
+        },
+      ],
+    });
+    render(<ResultSection headingRef={createRef()} onEdit={vi.fn()} />);
+
+    const meatButton = screen.getByRole('button', { name: /고기/ });
+    const marketButton = screen.getByRole('button', { name: /마트/ });
+    const panel = document.getElementById(meatButton.getAttribute('aria-controls') ?? '');
+    if (!panel) throw new Error('상세 항목 패널이 없습니다');
+
+    expect(meatButton).toHaveAttribute('aria-expanded', 'false');
+    expect(panel).toHaveAttribute('aria-hidden', 'true');
+    expect(panel).toHaveAttribute('inert');
+
+    await user.click(meatButton);
+    expect(meatButton).toHaveAttribute('aria-expanded', 'true');
+    expect(panel).toHaveAttribute('aria-hidden', 'false');
+    expect(panel).not.toHaveAttribute('inert');
+    expect(marketButton).toHaveAttribute('aria-expanded', 'false');
+
+    await user.keyboard(' ');
+    expect(meatButton).toHaveAttribute('aria-expanded', 'false');
+    expect(panel).toHaveAttribute('aria-hidden', 'true');
+  });
+
   it('참여자별 headcount를 합산하고 결과 카드 제목의 단계를 구분한다', () => {
     useSettlementStore.getState().actions.replaceSettlement({
       ...settlement,
