@@ -1,6 +1,6 @@
 import { LazyMotion } from 'framer-motion';
 import { ArrowRight, Check, Copy, List, ReceiptText, Send, UsersRound, Wallet } from 'lucide-react';
-import { type RefObject, useEffect, useState } from 'react';
+import { type RefObject, useEffect, useRef, useState } from 'react';
 
 import Button from '@/components/ui/button';
 import Card from '@/components/ui/card';
@@ -27,6 +27,7 @@ interface Props {
 /** 입력된 원본과 계산 결과를 함께 보여준다. 금액은 스토어에 저장하지 않는다. */
 const ResultSection = ({ headingRef, onEdit }: Props) => {
   const [copyFeedback, setCopyFeedback] = useState<CopyFeedback | null>(null);
+  const latestCopyRequest = useRef(0);
   const settlement = useSettlementStore((state) => state.settlement);
   const result = calculateSettlement(settlement);
   const { participants, items } = settlement;
@@ -52,11 +53,16 @@ const ResultSection = ({ headingRef, onEdit }: Props) => {
   }, [copyFeedback]);
 
   const handleTextCopy = async () => {
+    const requestId = ++latestCopyRequest.current;
     try {
       await navigator.clipboard.writeText(formatSettlementText(settlement, result));
-      setCopyFeedback({ kind: 'success', phase: 'visible' });
+      if (requestId === latestCopyRequest.current) {
+        setCopyFeedback({ kind: 'success', phase: 'visible' });
+      }
     } catch {
-      setCopyFeedback({ kind: 'error', phase: 'visible' });
+      if (requestId === latestCopyRequest.current) {
+        setCopyFeedback({ kind: 'error', phase: 'visible' });
+      }
     }
   };
 
@@ -143,7 +149,7 @@ const ResultSection = ({ headingRef, onEdit }: Props) => {
         <p
           role={copyFeedback.kind === 'error' ? 'alert' : 'status'}
           className={cn(
-            'bg-on-surface-base text-on-surface-inverse fixed inset-x-4 bottom-6 z-50 mx-auto w-fit max-w-sm rounded-xl px-4 py-3 text-center text-sm shadow-lg',
+            'bg-on-surface-base text-on-surface-inverse fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+1.5rem)] z-50 mx-auto w-fit max-w-sm rounded-xl px-4 py-3 text-center text-sm shadow-lg',
             copyFeedback.phase === 'exiting' ? 'animate-toast-out' : 'animate-toast-in',
           )}
         >

@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createRef } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -179,6 +179,9 @@ describe('ResultSection', () => {
     );
     expect(screen.getByRole('status')).toHaveTextContent('정산 내역을 복사했어요');
     expect(screen.getByRole('status')).toHaveClass('animate-toast-in');
+    expect(screen.getByRole('status')).toHaveClass(
+      'bottom-[calc(env(safe-area-inset-bottom)+1.5rem)]',
+    );
     expect(copyButton.querySelector('.lucide-check')).toBeInTheDocument();
 
     await waitFor(() => expect(screen.getByRole('status')).toHaveClass('animate-toast-out'), {
@@ -200,5 +203,32 @@ describe('ResultSection', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(
       '복사하지 못했어요. 브라우저의 클립보드 권한을 확인해 주세요',
     );
+  });
+
+  it('연속 복사에서는 이전 요청의 늦은 실패가 최신 성공을 덮지 않는다', async () => {
+    const user = userEvent.setup();
+    let rejectFirst: (reason: Error) => void = () => {};
+    const firstWrite = new Promise<void>((_resolve, reject) => {
+      rejectFirst = reject;
+    });
+    const writeText = vi
+      .spyOn(navigator.clipboard, 'writeText')
+      .mockImplementationOnce(() => firstWrite)
+      .mockResolvedValueOnce();
+    render(<ResultSection headingRef={createRef()} onEdit={vi.fn()} />);
+
+    const copyButton = screen.getByRole('button', { name: '텍스트 복사' });
+    await user.click(copyButton);
+    await user.click(copyButton);
+    expect(writeText).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole('status')).toHaveTextContent('정산 내역을 복사했어요');
+
+    await act(async () => {
+      rejectFirst(new Error('이전 복사 실패'));
+      await firstWrite.catch(() => {});
+    });
+
+    expect(screen.getByRole('status')).toHaveTextContent('정산 내역을 복사했어요');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 });
