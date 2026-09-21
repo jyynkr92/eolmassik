@@ -19,7 +19,7 @@ export const RESULT_TEXT = {
   openDetail: '상세 보기',
   payer: (name: string) => `${name} 결제`,
   extraCharges: '설정한 추가 부담',
-  fullCharge: (name: string) => `${name} 전액`,
+  fullCharge: (name: string) => `${name} 남은 금액 분담`,
   amountCharge: (name: string, amount: number) => `${name} ${formatWon(amount)}`,
   shares: '항목별 부담 금액',
   itemName: (name: string) => (name.trim() === '' ? '이름 없는 항목' : name),
