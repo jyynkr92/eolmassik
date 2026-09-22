@@ -3,8 +3,8 @@ import { type FormEvent, useRef, useState } from 'react';
 import Button from '@/components/ui/button';
 import TextField from '@/components/ui/text-field';
 import { PARTICIPANTS_TEXT } from '@/constants/text/participants';
-import type { ParticipantNameCheck } from '@/lib/participants/types';
 import { validateParticipantName } from '@/lib/participants/validate-participant-name';
+import type { ParticipantNameCheck } from '@/types/participants';
 import type { Participant } from '@/types/settlement';
 
 interface Props {

@@ -5,7 +5,7 @@ import Button from '@/components/ui/button';
 import TextField from '@/components/ui/text-field';
 import { ITEMS_TEXT } from '@/constants/text/items';
 import { describeItem } from '@/lib/items/describe-item';
-import type { ItemNotice } from '@/lib/items/types';
+import type { ItemNotice } from '@/types/items';
 import type { Item, Participant } from '@/types/settlement';
 
 const { summary: SUMMARY_TEXT } = ITEMS_TEXT;

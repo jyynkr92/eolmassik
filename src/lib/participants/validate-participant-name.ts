@@ -1,6 +1,5 @@
+import type { ParticipantNameCheck } from '@/types/participants';
 import type { Participant } from '@/types/settlement';
-
-import type { ParticipantNameCheck } from './types';
 
 /** 연속 공백. `replace` 는 호출마다 `lastIndex` 를 되돌리므로 `g` 를 써도 안전하다. */
 const CONSECUTIVE_SPACE_PATTERN = /\s+/g;

@@ -1,70 +1,41 @@
 import { LazyMotion } from 'framer-motion';
-import { ArrowRight, Check, Copy, List, ReceiptText, Send, UsersRound, Wallet } from 'lucide-react';
-import { type RefObject, useEffect, useRef, useState } from 'react';
+import { ArrowRight, List, ReceiptText, Send, UsersRound, Wallet } from 'lucide-react';
+import type { RefObject } from 'react';
 
 import Button from '@/components/ui/button';
 import Card from '@/components/ui/card';
 import { RESULT_TEXT } from '@/constants/text/result';
 import ResultItemDetail from '@/features/result/result-item-detail';
-import { formatSettlementText } from '@/features/share/format-settlement-text';
+import ShareActions from '@/features/share/share-actions';
 import { calculateSettlement } from '@/lib/calc';
-import { cn } from '@/lib/cn';
 import { formatWon } from '@/lib/format';
 import { useSettlementStore } from '@/store/settlement-store';
+import type { Settlement } from '@/types/settlement';
 
-const COPY_FEEDBACK_DURATION_MS = 2500;
-const COPY_FEEDBACK_EXIT_MS = 180;
 const loadMotionFeatures = () =>
   import('./motion-features').then(({ default: features }) => features);
 
-type CopyFeedback = { kind: 'success' | 'error'; phase: 'visible' | 'exiting' };
-
 interface Props {
-  headingRef: RefObject<HTMLHeadingElement | null>;
-  onEdit: () => void;
+  headingRef?: RefObject<HTMLHeadingElement | null>;
+  onEdit?: () => void;
+  settlement?: Settlement;
+  isReadOnly?: boolean;
 }
 
 /** 입력된 원본과 계산 결과를 함께 보여준다. 금액은 스토어에 저장하지 않는다. */
-const ResultSection = ({ headingRef, onEdit }: Props) => {
-  const [copyFeedback, setCopyFeedback] = useState<CopyFeedback | null>(null);
-  const latestCopyRequest = useRef(0);
-  const settlement = useSettlementStore((state) => state.settlement);
+const ResultSection = ({
+  headingRef,
+  onEdit,
+  settlement: settlementOverride,
+  isReadOnly = false,
+}: Props) => {
+  const storedSettlement = useSettlementStore((state) => state.settlement);
+  const settlement = settlementOverride ?? storedSettlement;
   const result = calculateSettlement(settlement);
   const { participants, items } = settlement;
   const totalHeadcount = participants.reduce((sum, participant) => sum + participant.headcount, 0);
   const nameById = new Map(participants.map((participant) => [participant.id, participant.name]));
   const itemResultById = new Map(result.itemResults.map((item) => [item.itemId, item]));
-
-  useEffect(() => {
-    if (!copyFeedback) return;
-
-    const timeoutId = window.setTimeout(
-      () => {
-        if (copyFeedback.phase === 'exiting') {
-          setCopyFeedback(null);
-          return;
-        }
-
-        setCopyFeedback({ ...copyFeedback, phase: 'exiting' });
-      },
-      copyFeedback.phase === 'exiting' ? COPY_FEEDBACK_EXIT_MS : COPY_FEEDBACK_DURATION_MS,
-    );
-    return () => window.clearTimeout(timeoutId);
-  }, [copyFeedback]);
-
-  const handleTextCopy = async () => {
-    const requestId = ++latestCopyRequest.current;
-    try {
-      await navigator.clipboard.writeText(formatSettlementText(settlement, result));
-      if (requestId === latestCopyRequest.current) {
-        setCopyFeedback({ kind: 'success', phase: 'visible' });
-      }
-    } catch {
-      if (requestId === latestCopyRequest.current) {
-        setCopyFeedback({ kind: 'error', phase: 'visible' });
-      }
-    }
-  };
 
   return (
     <section aria-label={RESULT_TEXT.pageLabel} className="flex flex-col gap-4">
@@ -82,9 +53,11 @@ const ResultSection = ({ headingRef, onEdit }: Props) => {
           />
           {settlement.title.trim() || RESULT_TEXT.title}
         </h2>
-        <Button variant="outline" onClick={onEdit}>
-          {RESULT_TEXT.editAction}
-        </Button>
+        {onEdit && (
+          <Button variant="outline" onClick={onEdit}>
+            {RESULT_TEXT.editAction}
+          </Button>
+        )}
       </div>
 
       <Card title={RESULT_TEXT.totalLabel} titleIcon={<Wallet size={18} />} headingLevel={3}>
@@ -131,31 +104,7 @@ const ResultSection = ({ headingRef, onEdit }: Props) => {
         )}
       </Card>
 
-      <Button
-        size="lg"
-        isFullWidth
-        leadingIcon={
-          copyFeedback?.kind === 'success' ? (
-            <Check size={18} aria-hidden />
-          ) : (
-            <Copy size={18} aria-hidden />
-          )
-        }
-        onClick={handleTextCopy}
-      >
-        {RESULT_TEXT.copyAction}
-      </Button>
-      {copyFeedback && (
-        <p
-          role={copyFeedback.kind === 'error' ? 'alert' : 'status'}
-          className={cn(
-            'bg-on-surface-base text-on-surface-inverse fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+1.5rem)] z-50 mx-auto w-fit max-w-sm rounded-xl px-4 py-3 text-center text-sm shadow-lg',
-            copyFeedback.phase === 'exiting' ? 'animate-toast-out' : 'animate-toast-in',
-          )}
-        >
-          {copyFeedback.kind === 'success' ? RESULT_TEXT.copySuccess : RESULT_TEXT.copyError}
-        </p>
-      )}
+      {!isReadOnly && <ShareActions settlement={settlement} result={result} />}
 
       <Card title={RESULT_TEXT.balanceTitle} titleIcon={<UsersRound size={18} />} headingLevel={3}>
         <ul className="divide-outline-base divide-y">
