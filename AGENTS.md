@@ -348,10 +348,11 @@ src/
 │  ├─ participants/   참여자 입력, 프리셋
 │  ├─ items/          항목 입력, 추가 부담 설정
 │  ├─ result/         부담액·송금 계산 결과
-│  └─ share/          텍스트 생성, URL 인코딩, 카카오 공유
+│  └─ share/          공유 액션 UI 컴포넌트
 ├─ lib/
 │  ├─ calc/           정산 계산 로직 (순수 함수 + 테스트)
-│  └─ codec/          URL 인코딩·디코딩 (키 축약 스키마)
+│  ├─ codec/          URL 인코딩·디코딩 (키 축약 스키마)
+│  └─ share/          공유 텍스트·URL 생성, 외부 공유 연동
 ├─ routes/            화면 (/ 편집, /s 읽기 전용)
 ├─ store/             Settlement 전역 상태
 ├─ constants/
@@ -363,6 +364,10 @@ src/
 > `utils/` 와 `lib/` 를 혼용하지 않는다. 공통 유틸 함수는 `lib/` 에 통합한다.
 > 도메인 유틸은 `lib/feature/` 아래에 둔다.
 > `api/`, `mock/`, `hooks/` 는 필요해지는 시점에 만든다. 빈 폴더를 미리 만들지 않는다.
+
+- `features/` 에는 화면을 구성하는 컴포넌트와 그 UI 동작을 둔다.
+- React 컴포넌트가 아닌 도메인 함수는 `lib/feature/` 에 둔다.
+- 둘 이상의 모듈이 공유하는 공개 타입은 `types/feature/` 에 둔다. 파일 안에서만 쓰는 구현 타입은 해당 파일에 둔다.
 
 ---
 

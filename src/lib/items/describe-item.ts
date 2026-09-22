@@ -1,7 +1,6 @@
+import type { ItemNotice } from '@/types/items';
 import type { Item, Participant } from '@/types/settlement';
-
 import { hasPayer } from './has-payer';
-import type { ItemNotice } from './types';
 
 /**
  * 항목 행에 알릴 사실들을 추린다. 기획설계 5.3

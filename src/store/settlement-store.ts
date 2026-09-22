@@ -31,7 +31,7 @@ import {
 } from './settlement-actions';
 
 /** 정산을 바꾸는 동작 묶음. */
-export type SettlementActions = {
+type SettlementActions = {
   setTitle: (title: string) => void;
   setDefaultPayerId: (participantId: string | null) => void;
   setOptions: (patch: Partial<Options>) => void;
@@ -61,7 +61,7 @@ export type SettlementActions = {
  * persist 미들웨어로 작성 중인 정산을 localStorage 에 남겨 새로고침 시
  * 복구한다. 기획설계 7 — P1
  */
-export type SettlementState = {
+type SettlementState = {
   settlement: Settlement;
   actions: SettlementActions;
 };
