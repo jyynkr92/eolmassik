@@ -1,12 +1,18 @@
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createRef } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { decodeSettlement } from '@/lib/codec';
+import { shareSettlementToKakao } from '@/lib/share/share-settlement-to-kakao';
 import { useSettlementStore } from '@/store/settlement-store';
 import type { Settlement } from '@/types/settlement';
 
 import ResultSection from './result-section';
+
+vi.mock('@/lib/share/share-settlement-to-kakao', () => ({
+  shareSettlementToKakao: vi.fn(),
+}));
 
 const settlement: Settlement = {
   id: 's1',
@@ -32,7 +38,15 @@ const settlement: Settlement = {
 
 describe('ResultSection', () => {
   beforeEach(() => {
+    Reflect.deleteProperty(navigator, 'share');
+    vi.stubEnv('VITE_KAKAO_JS_KEY', '');
+    vi.mocked(shareSettlementToKakao).mockResolvedValue({ success: true });
     useSettlementStore.getState().actions.replaceSettlement(settlement);
+  });
+
+  afterEach(() => {
+    Reflect.deleteProperty(navigator, 'share');
+    vi.unstubAllEnvs();
   });
 
   it('결제자, 설정한 추가 부담, 실제 항목별 부담액과 최종 송금을 보여준다', async () => {
@@ -203,6 +217,85 @@ describe('ResultSection', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(
       '복사하지 못했어요. 브라우저의 클립보드 권한을 확인해 주세요',
     );
+  });
+
+  it('정산 데이터를 fragment에 담은 읽기 전용 링크를 복사한다', async () => {
+    const user = userEvent.setup();
+    const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+    render(<ResultSection headingRef={createRef()} onEdit={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: '링크 복사' }));
+
+    const shareUrl = writeText.mock.calls[0]?.[0];
+    expect(shareUrl).toMatch(/^http:\/\/localhost(?::\d+)?\/s#/u);
+    if (!shareUrl) throw new Error('공유 링크가 없습니다');
+
+    const decoded = decodeSettlement(new URL(shareUrl).hash.slice(1));
+    expect(decoded.success).toBe(true);
+    if (decoded.success) expect(decoded.data.title).toBe('캠핑 정산');
+    expect(screen.getByRole('status')).toHaveTextContent('공유 링크를 복사했어요');
+  });
+
+  it('카카오 SDK 실패 시 같은 공유 링크를 클립보드에 복사한다', async () => {
+    const user = userEvent.setup();
+    vi.stubEnv('VITE_KAKAO_JS_KEY', 'test-key');
+    vi.mocked(shareSettlementToKakao).mockResolvedValue({ success: false });
+    const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+    render(<ResultSection headingRef={createRef()} onEdit={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: '카카오톡 공유' }));
+
+    expect(shareSettlementToKakao).toHaveBeenCalledWith(
+      settlement,
+      expect.stringMatching(/^http:\/\/localhost(?::\d+)?\/s#/u),
+      'test-key',
+    );
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('/s#'));
+    expect(screen.getByRole('status')).toHaveTextContent(
+      '카카오톡을 열지 못해 공유 링크를 복사했어요',
+    );
+  });
+
+  it('Web Share API를 지원하면 링크 복사 대신 다른 앱 공유를 제공한다', async () => {
+    const user = userEvent.setup();
+    const share = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'share', { configurable: true, value: share });
+    render(<ResultSection headingRef={createRef()} onEdit={vi.fn()} />);
+
+    expect(screen.queryByRole('button', { name: '링크 복사' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '다른 앱으로 공유' }));
+
+    expect(share).toHaveBeenCalledWith({
+      title: '캠핑 정산',
+      text: '총 32,000원 · 2명',
+      url: expect.stringMatching(/^http:\/\/localhost(?::\d+)?\/s#/u),
+    });
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('시스템 공유 실패 시 링크 복사로 폴백한다', async () => {
+    const user = userEvent.setup();
+    Object.defineProperty(navigator, 'share', {
+      configurable: true,
+      value: vi.fn().mockRejectedValue(new Error('share failed')),
+    });
+    const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+    render(<ResultSection headingRef={createRef()} onEdit={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: '다른 앱으로 공유' }));
+
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('/s#'));
+    expect(screen.getByRole('status')).toHaveTextContent('공유 창을 열지 못해 링크를 복사했어요');
+  });
+
+  it('읽기 전용 결과에서는 편집과 공유 액션을 숨긴다', () => {
+    render(<ResultSection settlement={settlement} isReadOnly />);
+
+    expect(screen.queryByRole('button', { name: '수정하기' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '텍스트 복사' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '링크 복사' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '다른 앱으로 공유' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '카카오톡 공유' })).not.toBeInTheDocument();
   });
 
   it('연속 복사에서는 이전 요청의 늦은 실패가 최신 성공을 덮지 않는다', async () => {
