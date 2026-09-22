@@ -1,6 +1,10 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.5.13/schema.json",
-  "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
   "files": {
     "includes": ["**", "!**/routeTree.gen.ts", "!**/dist"]
   },
@@ -12,16 +16,48 @@
   },
   "linter": {
     "enabled": true,
-    "rules": { "preset": "recommended" }
+    "rules": {
+      "preset": "recommended"
+    }
   },
   "javascript": {
     "formatter": {
       "quoteStyle": "single",
-      "semicolons": "asNeeded",
+      "semicolons": "always",
       "trailingCommas": "all"
     }
   },
   "css": {
-    "parser": { "tailwindDirectives": true }
-  }
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "src/**",
+        "!**/*.test.ts",
+        "!**/*.test.tsx",
+        "!**/*.test-helper.ts",
+        "!src/test-setup.ts"
+      ],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "fast-check": "테스트 전용 의존성입니다. 앱 코드에서 import 하면 프로덕션 번들로 끌려옵니다.",
+                  "@testing-library/react": "테스트 전용 의존성입니다. 앱 코드에서 import 하면 프로덕션 번들로 끌려옵니다.",
+                  "@testing-library/user-event": "테스트 전용 의존성입니다. 앱 코드에서 import 하면 프로덕션 번들로 끌려옵니다.",
+                  "@testing-library/jest-dom": "테스트 전용 의존성입니다. 앱 코드에서 import 하면 프로덕션 번들로 끌려옵니다."
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
 }

@@ -3,47 +3,190 @@
  *
  * 여기에는 원시 값만 둔다. Tailwind 클래스로 노출하는 매핑은 globals.css 의
  * `@theme inline` 에서 한다. 다크 모드는 `.dark` 클래스로 같은 변수를 덮어쓴다.
+ *
+ * 구성은 Radix Colors 를 따른다. 12단계 스케일을 원시 값으로 두고, 컴포넌트는
+ * 단계 번호가 아니라 의미 토큰(`--color-accent-solid` 등)만 쓴다. 단계 번호를
+ * 컴포넌트에 흩뿌리면 "왜 9가 아니라 11인가"를 매번 다시 판단하게 된다.
+ *
+ * 단계별 역할
+ *   1-2   화면/카드 배경      3-5   부드러운 배경 (선택·강조)
+ *   6-8   경계선              9-10  단색 채움      11-12  텍스트
  */
 
 :root {
-  /* surface */
-  --color-surface-base: #ffffff;
-  --color-surface-dim: #f5f5f5;
-  --color-surface-raised: #ffffff;
+  /**
+   * 중립 — Radix `sand`. 순수 회색 대신 웜 그레이를 쓴다.
+   * 따뜻한 accent 옆에 중성 회색을 두면 accent 쪽이 탁해 보인다.
+   */
+  --sand-1: #fdfdfc;
+  --sand-2: #f9f9f8;
+  --sand-3: #f1f0ef;
+  --sand-4: #e9e8e6;
+  --sand-5: #e2e1de;
+  --sand-6: #dad9d6;
+  --sand-7: #cfceca;
+  --sand-8: #bcbbb5;
+  --sand-9: #8d8d86;
+  --sand-10: #82827c;
+  --sand-11: #63635e;
+  --sand-12: #21201c;
 
-  /* on-surface (텍스트) */
-  --color-on-surface-base: #171717;
-  --color-on-surface-muted: #737373;
-  --color-on-surface-inverse: #ffffff;
+  /** accent — step 9 가 지정 색 #ae793d 다. 황토빛 브론즈. */
+  --accent-1: #fefdfb;
+  --accent-2: #fdf8ef;
+  --accent-3: #faeeda;
+  --accent-4: #f5e3c6;
+  --accent-5: #eed7b4;
+  --accent-6: #e5c89f;
+  --accent-7: #d8b585;
+  --accent-8: #c89c62;
+  --accent-9: #ae793d;
+  --accent-10: #a26e34;
+  --accent-11: #855822;
+  --accent-12: #422a12;
 
-  /* outline */
-  --color-outline-base: #e5e5e5;
-  --color-outline-strong: #d4d4d4;
+  /** 받을 돈 — Radix `jade`. */
+  --credit-3: #e6f7ed;
+  --credit-7: #8bceb6;
+  --credit-11: #208368;
 
-  /* accent — 정산 결과의 송금 금액 강조에 사용 */
-  --color-accent-base: #2563eb;
-  --color-accent-on: #ffffff;
-
-  /* 금액 부호. 받을 돈 / 보낼 돈 */
-  --color-credit-base: #2563eb;
-  --color-debit-base: #dc2626;
+  /** 보낼 돈 / 파괴적 동작 — Radix `tomato`. 따뜻한 계열의 빨강이다. */
+  --danger-3: #feebe7;
+  --danger-4: #ffdcd3;
+  --danger-7: #f5a898;
+  --danger-9: #e54d2e;
+  --danger-11: #d13415;
 }
 
 .dark {
-  --color-surface-base: #0a0a0a;
-  --color-surface-dim: #171717;
-  --color-surface-raised: #262626;
+  --sand-1: #111110;
+  --sand-2: #191918;
+  --sand-3: #222221;
+  --sand-4: #2a2a28;
+  --sand-5: #31312e;
+  --sand-6: #3b3a37;
+  --sand-7: #494844;
+  --sand-8: #62605b;
+  --sand-9: #6f6d66;
+  --sand-10: #7c7b74;
+  --sand-11: #b5b3ad;
+  --sand-12: #eeeeec;
 
-  --color-on-surface-base: #fafafa;
-  --color-on-surface-muted: #a3a3a3;
-  --color-on-surface-inverse: #0a0a0a;
+  --accent-1: #14110c;
+  --accent-2: #1d180f;
+  --accent-3: #2a2112;
+  --accent-4: #352915;
+  --accent-5: #40321a;
+  --accent-6: #4e3e23;
+  --accent-7: #624e2e;
+  --accent-8: #7c6339;
+  --accent-9: #ae793d;
+  --accent-10: #bd8749;
+  --accent-11: #e0ab63;
+  --accent-12: #f5e0c0;
 
-  --color-outline-base: #404040;
-  --color-outline-strong: #525252;
+  --credit-3: #0f2e22;
+  --credit-7: #246854;
+  --credit-11: #35d0a0;
 
-  --color-accent-base: #60a5fa;
-  --color-accent-on: #0a0a0a;
+  --danger-3: #391714;
+  --danger-4: #4e1511;
+  --danger-7: #853a2d;
+  --danger-9: #e54d2e;
+  --danger-11: #ff977d;
+}
 
-  --color-credit-base: #60a5fa;
-  --color-debit-base: #f87171;
+/**
+ * 의미 토큰 — 컴포넌트가 실제로 쓰는 이름.
+ * 라이트/다크 어느 쪽이든 같은 이름이 같은 역할을 가리킨다.
+ */
+:root,
+.dark {
+  /**
+   * surface — base/raised 는 테마마다 뒤집히므로 아래에서 따로 잡는다.
+   *
+   * dim 과 inset 은 hover·active 에만 쓴다. "어둡게"가 아니라 "raised 에서 한 단계 눌린"
+   * 이라는 뜻이라, 라이트에서는 어두워지고 다크에서는 밝아진다. 두 테마 모두 raised 를
+   * 기준으로 같은 방향(눌림)으로 움직이므로 값은 공용으로 둔다.
+   */
+  --color-surface-dim: var(--sand-3);
+  --color-surface-inset: var(--sand-4);
+
+  /* on-surface (텍스트) */
+  --color-on-surface-base: var(--sand-12);
+  --color-on-surface-muted: var(--sand-11);
+  --color-on-surface-faint: var(--sand-10);
+  --color-on-surface-inverse: var(--sand-1);
+
+  /* outline */
+  --color-outline-base: var(--sand-6);
+  --color-outline-strong: var(--sand-8);
+
+  /* accent */
+  --color-accent-subtle: var(--accent-3);
+  --color-accent-subtle-hover: var(--accent-4);
+  --color-accent-line: var(--accent-7);
+  --color-accent-base: var(--accent-9);
+  --color-accent-text: var(--accent-11);
+  --color-focus-ring: var(--accent-9);
+
+  /* 파괴적 동작 */
+  --color-danger-subtle: var(--danger-3);
+  --color-danger-subtle-hover: var(--danger-4);
+  --color-danger-line: var(--danger-7);
+  --color-danger-base: var(--danger-9);
+  --color-danger-text: var(--danger-11);
+
+  /* 시트·모달 뒤를 덮는 막. 양쪽 테마 모두 어두워지는 쪽이라 sand 스케일을 쓰지 않는다 */
+  --color-scrim: rgb(33 32 28 / 0.4);
+
+  /* 금액 부호 */
+  --color-credit-subtle: var(--credit-3);
+  --color-credit-text: var(--credit-11);
+  --color-debit-subtle: var(--danger-3);
+  --color-debit-text: var(--danger-11);
+}
+
+/**
+ * 단색 채움 버튼.
+ *
+ * 배경을 step 9(#ae793d)로 두면 흰 글자 대비가 3.75:1 이라 WCAG AA(4.5:1)에
+ * 못 미친다. 채움 버튼의 라벨은 본문 크기라 여기서 타협하면 안 된다.
+ * 그래서 채움 배경만 step 11 로 한 단계 더 내린다. step 9 는 글자가 얹히지 않는
+ * 곳(포커스 링, 선택 표시)에만 쓴다.
+ */
+:root {
+  /**
+   * 바탕은 accent 스케일의 2단계, 카드는 중립의 1단계다.
+   *
+   * 순백 바탕에 회색 카드를 올리면 카드가 바탕보다 어두워 "떠 있다"는 느낌이 뒤집힌다.
+   * 바탕에 따뜻한 기운을 넣고 카드를 밝게 두면 층이 제대로 서고, 황토빛 accent 와도
+   * 같은 계열로 읽힌다.
+   */
+  --color-surface-base: var(--accent-2);
+  --color-surface-raised: var(--sand-1);
+
+  --color-accent-solid: var(--accent-11);
+  --color-accent-solid-hover: var(--accent-12);
+  --color-accent-on: #ffffff;
+
+  --color-danger-solid: var(--danger-11);
+  --color-danger-on: #ffffff;
+}
+
+/* 어두운 배경에서는 반대로 밝은 쪽이 채움이 되고 글자가 어두워진다. */
+.dark {
+  /* 어두울 때는 반대다. 바탕이 가장 어둡고 카드가 그 위로 밝게 뜬다 */
+  --color-surface-base: var(--sand-1);
+  --color-surface-raised: var(--accent-2);
+
+  /* 배경이 이미 어두워 0.4 로는 시트와 뒤 화면이 분리되지 않는다 */
+  --color-scrim: rgb(0 0 0 / 0.6);
+
+  --color-accent-solid: var(--accent-11);
+  --color-accent-solid-hover: var(--accent-12);
+  --color-accent-on: var(--accent-2);
+
+  --color-danger-solid: var(--danger-11);
+  --color-danger-on: var(--danger-3);
 }
