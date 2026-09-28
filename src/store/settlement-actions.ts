@@ -59,16 +59,22 @@ export const setOptionsIn = (settlement: Settlement, patch: Partial<Options>): S
 /**
  * 참여자를 추가한다.
  *
- * 기본 결제자가 아직 없으면 이 사람으로 정한다. 정산을 만드는 사람이 먼저 자기 이름을
- * 넣고 본인이 결제자인 경우가 대부분이라, 매번 고르게 하는 것보다 자연스럽다.
- * 기획설계 9 — 결정 기록 7
+ * 기본 결제자가 아직 없으면 이 사람으로 정한다. 기존 항목에도 기본 부담자로 넣어,
+ * 항목을 먼저 입력한 뒤 사람을 추가해도 그 사람만 조용히 정산에서 빠지지 않게 한다.
+ * 단, 전액 부담자가 있는 항목은 다른 사람이 나눠 낼 금액이 없으므로 그대로 둔다.
+ * 기획설계 5.3 / 9 — 결정 기록 7
  */
 export const addParticipantTo = (settlement: Settlement, name: string): Settlement => {
   const participant: Participant = { id: createUuid(), name, headcount: 1 };
   const participants = [...settlement.participants, participant];
+  const items = settlement.items.map((item) =>
+    item.extraCharges.some((charge) => charge.type === 'full')
+      ? item
+      : { ...item, participantIds: [...item.participantIds, participant.id] },
+  );
 
   const defaultPayerId = settlement.defaultPayerId ?? participant.id;
-  return { ...settlement, participants, defaultPayerId };
+  return { ...settlement, participants, items, defaultPayerId };
 };
 
 export const updateParticipantIn = (
