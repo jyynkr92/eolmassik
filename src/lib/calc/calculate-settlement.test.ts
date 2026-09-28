@@ -57,7 +57,7 @@ describe('calculateSettlement', () => {
     expect(result.transfers).toEqual([{ fromId: 'p1', toId: 'p0', amount: 10_000 }]);
   });
 
-  it('고기·숙소·장보기의 전체 순액을 상계해 송금을 최소화한다', () => {
+  it('고기·숙소·장보기의 전체 순액을 상계해 송금한다', () => {
     const result = calculateSettlement(
       settlement({
         participants: [participant('eunjeong'), participant('hi'), participant('ppyong')],

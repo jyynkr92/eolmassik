@@ -22,6 +22,7 @@ const HomePage = () => {
   const editorHeadingRef = useRef<HTMLHeadingElement>(null);
   const resultHeadingRef = useRef<HTMLHeadingElement>(null);
   const hasSubmittedRef = useRef(false);
+  const shouldFocusEditorAfterResetRef = useRef(false);
   const participants = useSettlementStore((state) => state.settlement.participants);
   const items = useSettlementStore((state) => state.settlement.items);
   const settlementId = useSettlementStore((state) => state.settlement.id);
@@ -30,9 +31,18 @@ const HomePage = () => {
   const canSubmit = participants.length > 0 && items.length > 0 && invalidCount === 0;
 
   const handleResetConfirm = () => {
+    shouldFocusEditorAfterResetRef.current = true;
     reset();
     setIsSubmitted(false);
     setIsResetConfirming(false);
+  };
+
+  const handleResetCloseAutoFocus = (event: Event) => {
+    if (!shouldFocusEditorAfterResetRef.current) return;
+
+    event.preventDefault();
+    shouldFocusEditorAfterResetRef.current = false;
+    editorHeadingRef.current?.focus();
   };
 
   useEffect(() => {
@@ -68,6 +78,7 @@ const HomePage = () => {
       <Sheet
         isOpen={isResetConfirming}
         onOpenChange={setIsResetConfirming}
+        onCloseAutoFocus={handleResetCloseAutoFocus}
         title={COMMON_TEXT.resetSettlementTitle}
         description={COMMON_TEXT.removeWarning}
         footer={

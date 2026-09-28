@@ -46,26 +46,24 @@ const ShareActions = ({ settlement, result }: Props) => {
     setActionFeedback({ message, isError, phase: 'visible' });
   };
 
-  const getShareUrl = (shouldShowError = true) => {
+  const getShareUrl = () => {
     const shareUrl = createSettlementShareUrl(settlement);
     if (shareUrl.success) return shareUrl.data;
 
-    if (shouldShowError) {
-      showFeedback(
-        shareUrl.error === 'too-long' ? RESULT_TEXT.linkTooLong : RESULT_TEXT.linkCreateError,
-        true,
-      );
-    }
+    showFeedback(
+      shareUrl.error === 'too-long' ? RESULT_TEXT.linkTooLong : RESULT_TEXT.linkCreateError,
+      true,
+    );
     return null;
   };
 
   const handleTextCopy = async () => {
     const requestId = ++latestCopyRequest.current;
-    const shareUrl = getShareUrl(false);
+    const shareUrl = getShareUrl();
+    if (!shareUrl) return;
+
     try {
-      await navigator.clipboard.writeText(
-        formatSettlementText(settlement, result, shareUrl ?? undefined),
-      );
+      await navigator.clipboard.writeText(formatSettlementText(settlement, result, shareUrl));
       if (requestId === latestCopyRequest.current) showFeedback(RESULT_TEXT.copySuccess);
     } catch {
       if (requestId === latestCopyRequest.current) showFeedback(RESULT_TEXT.copyError, true);

@@ -83,6 +83,7 @@ describe('결과 보기 흐름', () => {
 
     expect(useSettlementStore.getState().settlement.participants).toEqual([]);
     expect(useSettlementStore.getState().settlement.items).toEqual([]);
+    expect(screen.getByRole('heading', { level: 1, name: '얼마씩' })).toHaveFocus();
     expect(screen.getByRole('button', { name: '결과 보기' })).toBeDisabled();
   });
 

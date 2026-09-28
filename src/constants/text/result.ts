@@ -20,7 +20,7 @@ export const RESULT_TEXT = {
   closeDetail: '상세 접기',
   payer: (name: string) => `${name} 결제`,
   amountCharge: (amount: number) => `+${formatWon(amount)} 추가 부담`,
-  fullCharge: '전액 부담',
+  fullCharge: (count: number) => (count > 1 ? '남은 금액 분담' : '전액 부담'),
   shares: '항목별 부담 금액',
   itemName: (name: string) => (name.trim() === '' ? '이름 없는 항목' : name),
   copyAction: '텍스트 복사',

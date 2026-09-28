@@ -20,6 +20,7 @@ const ResultItemDetail = ({ item, itemResult, nameById }: Props) => {
   const extraChargeByParticipantId = new Map(
     item.extraCharges.map((charge) => [charge.participantId, charge]),
   );
+  const fullChargeCount = item.extraCharges.filter((charge) => charge.type === 'full').length;
 
   return (
     <li className="border-outline-base rounded-xl border p-3">
@@ -65,7 +66,7 @@ const ResultItemDetail = ({ item, itemResult, nameById }: Props) => {
                         <span className="text-accent-text ml-1">
                           (
                           {charge.type === 'full'
-                            ? RESULT_TEXT.fullCharge
+                            ? RESULT_TEXT.fullCharge(fullChargeCount)
                             : RESULT_TEXT.amountCharge(charge.value ?? 0)}
                           )
                         </span>
