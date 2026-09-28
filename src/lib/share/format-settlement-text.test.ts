@@ -72,4 +72,14 @@ describe('formatSettlementText', () => {
       '송금액 올림으로 1원을 더 보내요',
     );
   });
+
+  it('공유 링크를 받으면 마지막 줄에 붙인다', () => {
+    const text = formatSettlementText(
+      settlement,
+      calculateSettlement(settlement),
+      'https://eolmassik.vercel.app/s#encoded',
+    );
+
+    expect(text).toMatch(/은정 → 민수 10,000원\n\nhttps:\/\/eolmassik\.vercel\.app\/s#encoded$/u);
+  });
 });

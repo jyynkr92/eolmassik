@@ -3,7 +3,7 @@ export const PARTICIPANTS_TEXT = {
   title: '참여자',
 
   nameLabel: '참여자 이름',
-  namePlaceholder: '이름을 입력하고 엔터',
+  namePlaceholder: '이름 입력',
   addAction: '추가',
 
   /** 이름 검사 실패 문구. `validateParticipantName` 의 에러 코드로 찾는다. */

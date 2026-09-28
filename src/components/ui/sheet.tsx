@@ -1,6 +1,6 @@
 import { ArrowLeft, X } from 'lucide-react';
 import { Dialog } from 'radix-ui';
-import type { ReactNode } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 
 import Button from '@/components/ui/button';
 import { COMMON_TEXT } from '@/constants/text/common';
@@ -24,6 +24,7 @@ interface Props {
    * 내용이 길어 스크롤이 생겨도 이 자리는 화면에 남는다.
    */
   footer?: ReactNode;
+  onCloseAutoFocus?: ComponentProps<typeof Dialog.Content>['onCloseAutoFocus'];
   children: ReactNode;
 }
 
@@ -36,13 +37,25 @@ interface Props {
  * 포커스 가두기, `Esc` 닫기, 배경 스크롤 잠금, 열기 전 포커스 복원은 Radix Dialog 가
  * 처리한다. 직접 만들면 이 중 하나는 반드시 빠진다.
  */
-const Sheet = ({ isOpen, onOpenChange, title, description, onBack, footer, children }: Props) => {
+const Sheet = ({
+  isOpen,
+  onOpenChange,
+  title,
+  description,
+  onBack,
+  footer,
+  onCloseAutoFocus,
+  children,
+}: Props) => {
   return (
     <Dialog.Root open={isOpen} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="data-[state=open]:animate-overlay-in data-[state=closed]:animate-overlay-out bg-scrim fixed inset-0" />
 
-        <Dialog.Content className="bg-surface-base data-[state=open]:animate-sheet-in data-[state=closed]:animate-sheet-out safe-bottom fixed inset-x-0 bottom-0 mx-auto flex max-h-[85dvh] w-full max-w-md flex-col gap-4 rounded-t-2xl px-4 pt-4">
+        <Dialog.Content
+          onCloseAutoFocus={onCloseAutoFocus}
+          className="bg-surface-base data-[state=open]:animate-sheet-in data-[state=closed]:animate-sheet-out safe-bottom fixed inset-x-0 bottom-0 mx-auto flex max-h-[85dvh] w-full max-w-md flex-col gap-4 rounded-t-2xl px-4 pt-4"
+        >
           <header className="flex items-start justify-between gap-2">
             <div className="flex min-w-0 items-center gap-1">
               {/* 아이콘을 왼쪽 끝에 맞춘다. 버튼의 좌우 여백까지 밀어 넣으면 제목만 들여쓴

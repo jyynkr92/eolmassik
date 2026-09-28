@@ -60,18 +60,18 @@ export const ITEMS_TEXT = {
     /** 결제자가 없으면 이 항목은 정산에서 통째로 빠진다. 시트를 연 이유가 대개 이것이다. */
     payerMissing: '결제자를 골라야 이 항목이 정산에 들어가요',
 
-    bearerLabel: 'N빵 참여',
+    bearerLabel: '결제 분배 대상',
     /** 인원이 1이면 굳이 적지 않는다. 대부분의 참여자가 1인이라 전부 적으면 눈에 걸린다. */
     bearerName: (name: string, headcount: number) =>
       headcount > 1 ? `${name} (${headcount}인)` : name,
     bearerHint:
-      '체크를 풀면 N빵에서 빠져요. 추가 부담은 그대로 유지돼요. 오른쪽 금액은 지금 부담액이에요',
+      '체크를 풀면 결제 분배 대상에서 빠져요. 추가 부담은 그대로 유지돼요. 오른쪽 금액은 지금 부담액이에요',
 
     /** 사람마다 붙는 추가 부담 펼치기 버튼. 기획설계 3.4 */
     extraChargeAction: (name: string) => `${name} 추가 부담`,
     extraChargeRemoveAction: (name: string) => `${name} 추가 부담 빼기`,
     extraChargeLabel: (name: string) => `${name} 추가 부담 금액`,
-    extraChargePlaceholder: '8,000',
+    extraChargePlaceholder: '추가 부담',
     /** 전액 부담은 금액 지정의 특수 케이스라 같은 줄에서 토글로 바꾼다. 기획설계 3.4 */
     fullChargeAction: '전액',
 

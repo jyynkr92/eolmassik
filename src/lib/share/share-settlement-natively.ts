@@ -2,6 +2,8 @@ import { SHARE_TEXT } from '@/constants/text/share';
 import { calculateSettlement } from '@/lib/calc';
 import type { Settlement } from '@/types/settlement';
 
+import { formatSettlementText } from './format-settlement-text';
+
 type NativeShareResult = { status: 'shared' | 'cancelled' | 'failed' };
 
 const isAbortError = (error: unknown): boolean =>
@@ -15,16 +17,11 @@ export const shareSettlementNatively = async (
   if (typeof navigator.share !== 'function') return { status: 'failed' };
 
   const result = calculateSettlement(settlement);
-  const totalHeadcount = settlement.participants.reduce(
-    (sum, participant) => sum + participant.headcount,
-    0,
-  );
 
   try {
     await navigator.share({
       title: settlement.title.trim() || SHARE_TEXT.defaultTitle,
-      text: SHARE_TEXT.summary(result.totalAmount, totalHeadcount),
-      url: shareUrl,
+      text: formatSettlementText(settlement, result, shareUrl),
     });
     return { status: 'shared' };
   } catch (error) {

@@ -32,7 +32,7 @@ describe('shareSettlementNatively', () => {
     Reflect.deleteProperty(navigator, 'share');
   });
 
-  it('제목·총액·인원과 읽기 전용 링크를 시스템 공유 시트에 전달한다', async () => {
+  it('텍스트 복사와 같은 전체 내역 및 링크를 시스템 공유 시트에 전달한다', async () => {
     const share = vi.fn().mockResolvedValue(undefined);
     setNativeShare(share);
 
@@ -41,8 +41,17 @@ describe('shareSettlementNatively', () => {
     ).resolves.toEqual({ status: 'shared' });
     expect(share).toHaveBeenCalledWith({
       title: '캠핑 정산',
-      text: '총 10,000원 · 2명',
-      url: 'https://example.com/s#encoded',
+      text: [
+        '🧾 캠핑 정산 · 총 10,000원',
+        '',
+        '· 고기 10,000원 (민수 결제)',
+        '부담: 민수 10,000원',
+        '',
+        '💸 정산',
+        '서로 보낼 돈이 없어요',
+        '',
+        'https://example.com/s#encoded',
+      ].join('\n'),
     });
   });
 
