@@ -49,7 +49,7 @@ describe('ResultSection', () => {
     vi.unstubAllEnvs();
   });
 
-  it('결제자, 설정한 추가 부담, 실제 항목별 부담액과 최종 송금을 보여준다', async () => {
+  it('결제자, 추가 부담이 합쳐진 항목별 부담액과 최종 송금을 보여준다', async () => {
     const user = userEvent.setup();
     render(<ResultSection headingRef={createRef()} onEdit={vi.fn()} />);
 
@@ -64,7 +64,8 @@ describe('ResultSection', () => {
     if (!detail) throw new Error('항목 부담액 영역이 없습니다');
 
     expect(screen.getByText('민수 결제 ·')).toBeInTheDocument();
-    expect(screen.getByText('민수 12,000원')).toBeInTheDocument();
+    expect(screen.queryByText('설정한 추가 부담')).not.toBeInTheDocument();
+    expect(within(detail).getByText(/민수/)).toHaveTextContent('민수(+12,000원 추가 부담)');
     expect(within(detail).getByText('22,000원')).toBeInTheDocument();
     expect(within(detail).getByText('10,000원')).toBeInTheDocument();
   });
@@ -189,7 +190,9 @@ describe('ResultSection', () => {
     await user.click(copyButton);
 
     expect(writeText).toHaveBeenCalledWith(
-      '🧾 캠핑 정산 · 총 32,000원\n\n· 고기 32,000원 (민수 결제)\n부담: 민수 22,000원 · 은정 10,000원\n\n💸 정산\n은정 → 민수 10,000원',
+      expect.stringMatching(
+        /^🧾 캠핑 정산 · 총 32,000원[\s\S]*은정 → 민수 10,000원\n\nhttps:\/\/eolmassik\.vercel\.app\/s#/u,
+      ),
     );
     expect(screen.getByRole('status')).toHaveTextContent('정산 내역을 복사했어요');
     expect(screen.getByRole('status')).toHaveClass('animate-toast-in');
@@ -227,7 +230,7 @@ describe('ResultSection', () => {
     await user.click(screen.getByRole('button', { name: '링크 복사' }));
 
     const shareUrl = writeText.mock.calls[0]?.[0];
-    expect(shareUrl).toMatch(/^http:\/\/localhost(?::\d+)?\/s#/u);
+    expect(shareUrl).toMatch(/^https:\/\/eolmassik\.vercel\.app\/s#/u);
     if (!shareUrl) throw new Error('공유 링크가 없습니다');
 
     const decoded = decodeSettlement(new URL(shareUrl).hash.slice(1));
@@ -247,7 +250,7 @@ describe('ResultSection', () => {
 
     expect(shareSettlementToKakao).toHaveBeenCalledWith(
       settlement,
-      expect.stringMatching(/^http:\/\/localhost(?::\d+)?\/s#/u),
+      expect.stringMatching(/^https:\/\/eolmassik\.vercel\.app\/s#/u),
       'test-key',
     );
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('/s#'));
@@ -267,8 +270,9 @@ describe('ResultSection', () => {
 
     expect(share).toHaveBeenCalledWith({
       title: '캠핑 정산',
-      text: '총 32,000원 · 2명',
-      url: expect.stringMatching(/^http:\/\/localhost(?::\d+)?\/s#/u),
+      text: expect.stringMatching(
+        /^🧾 캠핑 정산 · 총 32,000원[\s\S]*은정 → 민수 10,000원\n\nhttps:\/\/eolmassik\.vercel\.app\/s#/u,
+      ),
     });
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });

@@ -57,6 +57,86 @@ describe('calculateSettlement', () => {
     expect(result.transfers).toEqual([{ fromId: 'p1', toId: 'p0', amount: 10_000 }]);
   });
 
+  it('고기·숙소·장보기의 전체 순액을 상계해 송금을 최소화한다', () => {
+    const result = calculateSettlement(
+      settlement({
+        participants: [participant('eunjeong'), participant('hi'), participant('ppyong')],
+        items: [
+          {
+            id: 'meat',
+            name: '고기',
+            amount: 42_000,
+            payerId: 'eunjeong',
+            participantIds: ['eunjeong', 'hi', 'ppyong'],
+            extraCharges: [{ participantId: 'ppyong', type: 'amount', value: 3_000 }],
+          },
+          {
+            id: 'stay',
+            name: '숙소',
+            amount: 240_000,
+            payerId: 'hi',
+            participantIds: ['eunjeong', 'hi', 'ppyong'],
+            extraCharges: [],
+          },
+          {
+            id: 'market',
+            name: '장보기',
+            amount: 54_690,
+            payerId: 'eunjeong',
+            participantIds: ['eunjeong', 'hi', 'ppyong'],
+            extraCharges: [],
+          },
+        ],
+      }),
+    );
+
+    expect(result.transfers).toEqual([
+      { fromId: 'ppyong', toId: 'hi', amount: 114_230 },
+      { fromId: 'eunjeong', toId: 'hi', amount: 14_540 },
+    ]);
+  });
+
+  it('돗자리 결제액을 본인 총 부담에서 빼고 나머지만 피자 결제자에게 보낸다', () => {
+    const participants = [
+      participant('eunjeong'),
+      participant('p1'),
+      participant('p2'),
+      participant('p3'),
+      participant('hi'),
+    ];
+    const participantIds = participants.map(({ id }) => id);
+    const result = calculateSettlement(
+      settlement({
+        participants,
+        items: [
+          {
+            id: 'mat',
+            name: '돗자리',
+            amount: 5_000,
+            payerId: 'eunjeong',
+            participantIds,
+            extraCharges: [],
+          },
+          {
+            id: 'pizza',
+            name: '피자',
+            amount: 54_300,
+            payerId: 'hi',
+            participantIds,
+            extraCharges: [],
+          },
+        ],
+      }),
+    );
+
+    expect(result.transfers).toEqual([
+      { fromId: 'p1', toId: 'hi', amount: 11_860 },
+      { fromId: 'p2', toId: 'hi', amount: 11_860 },
+      { fromId: 'p3', toId: 'hi', amount: 11_860 },
+      { fromId: 'eunjeong', toId: 'hi', amount: 6_860 },
+    ]);
+  });
+
   it('올림이 항목 수만큼 누적되지 않는다', () => {
     // 10,000원 항목 3개를 3명이 나누면 정확히 1인 10,000원이다.
     // 항목 단위로 올리면 1인 10,200원이 되어 항목 수만큼 손해가 쌓인다. 기획설계 4.3
@@ -154,30 +234,44 @@ describe('calculateSettlement', () => {
       );
     });
 
-    it('송금을 모두 반영하면 올림 초과분만 남고, 건수는 참여자 수보다 적다', () => {
+    it('정확 송금을 모두 반영하면 잔액이 0이고, 송금은 참여자 수보다 적다', () => {
       fc.assert(
         fc.property(arbitrarySettlement(), (generated) => {
-          const result = calculateSettlement(generated);
-          const remaining = [...applyTransfers(result.balances, result.transfers).values()];
-          expect(result.transfers.length).toBeLessThanOrEqual(generated.participants.length - 1);
-          // 주고받은 총액은 언제나 맞아떨어진다.
-          expect(sum(remaining)).toBe(0);
-          // 더 보낸 금액의 합이 곧 초과분이고, 그만큼 받는 쪽이 이득을 본다.
-          expect(sum(remaining.filter((net) => net > 0))).toBe(result.roundingExcess);
+          const exact = calculateSettlement({
+            ...generated,
+            options: { ...generated.options, rounding: 'none' },
+          });
+          const remaining = [...applyTransfers(exact.balances, exact.transfers).values()];
+          const participantCount = generated.participants.length;
+          expect(exact.transfers.length).toBeLessThanOrEqual(participantCount - 1);
+          expect(remaining.every((net) => net === 0)).toBe(true);
         }),
       );
     });
 
-    it('올림을 켜도 한 사람이 더 보내는 금액은 단위 미만이다', () => {
+    it('올림을 켜도 한 사람이 정확 송금보다 더 보내는 금액은 단위 미만이다', () => {
       fc.assert(
         fc.property(arbitrarySettlement(), (generated) => {
           const result = calculateSettlement(generated);
+          const exact = calculateSettlement({
+            ...generated,
+            options: { ...generated.options, rounding: 'none' },
+          });
           const unit = ROUNDING_UNIT[generated.options.rounding];
-          for (const [id, sent] of sumSentById(result.transfers)) {
-            const owedNet = -(result.balances.find((b) => b.participantId === id)?.net ?? 0);
-            expect(sent - owedNet).toBeGreaterThanOrEqual(0);
-            expect(sent - owedNet).toBeLessThan(unit);
+          const exactSentById = sumSentById(exact.transfers);
+          const roundedSentById = sumSentById(result.transfers);
+
+          for (const participant of generated.participants) {
+            const gap =
+              (roundedSentById.get(participant.id) ?? 0) - (exactSentById.get(participant.id) ?? 0);
+            expect(gap).toBeGreaterThanOrEqual(0);
+            expect(gap).toBeLessThan(unit);
           }
+
+          expect(
+            sum(result.transfers.map(({ amount }) => amount)) -
+              sum(exact.transfers.map(({ amount }) => amount)),
+          ).toBe(result.roundingExcess);
         }),
       );
     });

@@ -4,6 +4,7 @@ import type { RefObject } from 'react';
 
 import Button from '@/components/ui/button';
 import Card from '@/components/ui/card';
+import { COMMON_TEXT } from '@/constants/text/common';
 import { RESULT_TEXT } from '@/constants/text/result';
 import ResultItemDetail from '@/features/result/result-item-detail';
 import ShareActions from '@/features/share/share-actions';
@@ -18,6 +19,7 @@ const loadMotionFeatures = () =>
 interface Props {
   headingRef?: RefObject<HTMLHeadingElement | null>;
   onEdit?: () => void;
+  onReset?: () => void;
   settlement?: Settlement;
   isReadOnly?: boolean;
 }
@@ -26,6 +28,7 @@ interface Props {
 const ResultSection = ({
   headingRef,
   onEdit,
+  onReset,
   settlement: settlementOverride,
   isReadOnly = false,
 }: Props) => {
@@ -36,6 +39,7 @@ const ResultSection = ({
   const totalHeadcount = participants.reduce((sum, participant) => sum + participant.headcount, 0);
   const nameById = new Map(participants.map((participant) => [participant.id, participant.name]));
   const itemResultById = new Map(result.itemResults.map((item) => [item.itemId, item]));
+  const hasHeaderActions = Boolean(onEdit || onReset);
 
   return (
     <section aria-label={RESULT_TEXT.pageLabel} className="flex flex-col gap-4">
@@ -53,10 +57,19 @@ const ResultSection = ({
           />
           {settlement.title.trim() || RESULT_TEXT.title}
         </h2>
-        {onEdit && (
-          <Button variant="outline" onClick={onEdit}>
-            {RESULT_TEXT.editAction}
-          </Button>
+        {hasHeaderActions && (
+          <div className="flex flex-wrap justify-end gap-2">
+            {onEdit && (
+              <Button variant="outline" onClick={onEdit}>
+                {RESULT_TEXT.editAction}
+              </Button>
+            )}
+            {onReset && (
+              <Button variant="soft" onClick={onReset}>
+                {COMMON_TEXT.newSettlementAction}
+              </Button>
+            )}
+          </div>
         )}
       </div>
 
