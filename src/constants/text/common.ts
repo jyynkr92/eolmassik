@@ -19,6 +19,12 @@ export const COMMON_TEXT = {
   /** 삭제는 되돌릴 수 없다. 확인 화면의 부제로 쓴다. */
   removeWarning: '되돌릴 수 없어요',
 
+  resetSettlementAction: '초기화',
+  newSettlementAction: '새로운 정산하기',
+  resetSettlementTitle: '새 정산을 시작할까요?',
+  resetSettlementDescription: '입력한 참여자와 항목이 모두 사라져요',
+  resetSettlementConfirm: '새로 시작',
+
   /** 금액 입력이 상한에서 잘렸을 때. 상한 값은 상수에서 가져와 문구와 어긋나지 않게 한다. */
   maxAmountReached: `최대 ${formatWon(MAX_AMOUNT)}`,
 } as const;

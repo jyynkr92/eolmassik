@@ -55,6 +55,28 @@ describe('addParticipantTo', () => {
 
     expect(settlement.defaultPayerId).toBe(ids[0]);
   });
+
+  it('기존 항목의 부담자에 새 참여자를 기본으로 넣는다', () => {
+    const { settlement } = withParticipants(['은정이네', '민수']);
+    const withItem = addItemTo(settlement, '고기');
+    const added = addParticipantTo(withItem, '철준');
+    const participantId = added.participants.at(-1)?.id;
+
+    expect(lastItem(added).participantIds).toContain(participantId);
+  });
+
+  it('전액 부담자가 있는 기존 항목은 새 참여자를 넣지 않는다', () => {
+    const { settlement, ids } = withParticipants(['은정이네', '민수']);
+    const withItem = addItemTo(settlement, '고기');
+    const charged = setExtraChargeIn(withItem, lastItem(withItem).id, {
+      participantId: ids[0] ?? '',
+      type: 'full',
+    });
+    const added = addParticipantTo(charged, '철준');
+    const participantId = added.participants.at(-1)?.id;
+
+    expect(lastItem(added).participantIds).not.toContain(participantId);
+  });
 });
 
 describe('updateParticipantIn', () => {

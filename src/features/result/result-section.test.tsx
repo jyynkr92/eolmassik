@@ -4,6 +4,7 @@ import { createRef } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { decodeSettlement } from '@/lib/codec';
+import * as shareUrlModule from '@/lib/share/create-settlement-share-url';
 import { shareSettlementToKakao } from '@/lib/share/share-settlement-to-kakao';
 import { useSettlementStore } from '@/store/settlement-store';
 import type { Settlement } from '@/types/settlement';
@@ -49,7 +50,7 @@ describe('ResultSection', () => {
     vi.unstubAllEnvs();
   });
 
-  it('결제자, 설정한 추가 부담, 실제 항목별 부담액과 최종 송금을 보여준다', async () => {
+  it('결제자, 추가 부담이 합쳐진 항목별 부담액과 최종 송금을 보여준다', async () => {
     const user = userEvent.setup();
     render(<ResultSection headingRef={createRef()} onEdit={vi.fn()} />);
 
@@ -64,9 +65,38 @@ describe('ResultSection', () => {
     if (!detail) throw new Error('항목 부담액 영역이 없습니다');
 
     expect(screen.getByText('민수 결제 ·')).toBeInTheDocument();
-    expect(screen.getByText('민수 12,000원')).toBeInTheDocument();
+    expect(screen.queryByText('설정한 추가 부담')).not.toBeInTheDocument();
+    expect(within(detail).getByText(/민수/)).toHaveTextContent('민수(+12,000원 추가 부담)');
     expect(within(detail).getByText('22,000원')).toBeInTheDocument();
     expect(within(detail).getByText('10,000원')).toBeInTheDocument();
+  });
+
+  it('전액 부담자가 여러 명이면 남은 금액을 나눠 부담한다고 표시한다', async () => {
+    const user = userEvent.setup();
+    const item = settlement.items[0];
+    if (!item) throw new Error('테스트 정산 항목이 없습니다');
+
+    useSettlementStore.getState().actions.replaceSettlement({
+      ...settlement,
+      items: [
+        {
+          ...item,
+          extraCharges: [
+            { participantId: 'minsu', type: 'full' },
+            { participantId: 'eunjeong', type: 'full' },
+          ],
+        },
+      ],
+    });
+
+    render(<ResultSection headingRef={createRef()} onEdit={vi.fn()} />);
+    await user.click(screen.getByText('고기'));
+
+    const detail = screen.getByText('항목별 부담 금액').parentElement;
+    if (!detail) throw new Error('항목 부담액 영역이 없습니다');
+
+    expect(within(detail).getByText(/민수/)).toHaveTextContent('민수(남은 금액 분담)');
+    expect(within(detail).getByText(/은정/)).toHaveTextContent('은정(남은 금액 분담)');
   });
 
   it('송금이 필요 없을 때 안내하고 편집으로 돌아갈 수 있다', async () => {
@@ -189,7 +219,9 @@ describe('ResultSection', () => {
     await user.click(copyButton);
 
     expect(writeText).toHaveBeenCalledWith(
-      '🧾 캠핑 정산 · 총 32,000원\n\n· 고기 32,000원 (민수 결제)\n부담: 민수 22,000원 · 은정 10,000원\n\n💸 정산\n은정 → 민수 10,000원',
+      expect.stringMatching(
+        /^🧾 캠핑 정산 · 총 32,000원[\s\S]*은정 → 민수 10,000원\n\nhttps:\/\/eolmassik\.vercel\.app\/s#/u,
+      ),
     );
     expect(screen.getByRole('status')).toHaveTextContent('정산 내역을 복사했어요');
     expect(screen.getByRole('status')).toHaveClass('animate-toast-in');
@@ -219,6 +251,23 @@ describe('ResultSection', () => {
     );
   });
 
+  it('공유 링크가 너무 길면 링크 없는 텍스트를 성공으로 안내하지 않는다', async () => {
+    const user = userEvent.setup();
+    const urlSpy = vi
+      .spyOn(shareUrlModule, 'createSettlementShareUrl')
+      .mockReturnValue({ success: false, error: 'too-long' });
+    const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+    render(<ResultSection headingRef={createRef()} onEdit={vi.fn()} />);
+
+    await user.click(screen.getByRole('button', { name: '텍스트 복사' }));
+
+    expect(writeText).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      '공유 링크가 너무 길어요. 정산 내역을 텍스트로 복사해 주세요',
+    );
+    urlSpy.mockRestore();
+  });
+
   it('정산 데이터를 fragment에 담은 읽기 전용 링크를 복사한다', async () => {
     const user = userEvent.setup();
     const writeText = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
@@ -227,7 +276,7 @@ describe('ResultSection', () => {
     await user.click(screen.getByRole('button', { name: '링크 복사' }));
 
     const shareUrl = writeText.mock.calls[0]?.[0];
-    expect(shareUrl).toMatch(/^http:\/\/localhost(?::\d+)?\/s#/u);
+    expect(shareUrl).toMatch(/^https:\/\/eolmassik\.vercel\.app\/s#/u);
     if (!shareUrl) throw new Error('공유 링크가 없습니다');
 
     const decoded = decodeSettlement(new URL(shareUrl).hash.slice(1));
@@ -247,7 +296,7 @@ describe('ResultSection', () => {
 
     expect(shareSettlementToKakao).toHaveBeenCalledWith(
       settlement,
-      expect.stringMatching(/^http:\/\/localhost(?::\d+)?\/s#/u),
+      expect.stringMatching(/^https:\/\/eolmassik\.vercel\.app\/s#/u),
       'test-key',
     );
     expect(writeText).toHaveBeenCalledWith(expect.stringContaining('/s#'));
@@ -267,8 +316,9 @@ describe('ResultSection', () => {
 
     expect(share).toHaveBeenCalledWith({
       title: '캠핑 정산',
-      text: '총 32,000원 · 2명',
-      url: expect.stringMatching(/^http:\/\/localhost(?::\d+)?\/s#/u),
+      text: expect.stringMatching(
+        /^🧾 캠핑 정산 · 총 32,000원[\s\S]*은정 → 민수 10,000원\n\nhttps:\/\/eolmassik\.vercel\.app\/s#/u,
+      ),
     });
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });

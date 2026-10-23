@@ -113,7 +113,7 @@ describe('항목 상세 시트', () => {
         { participantId: participantNamed('지영').id, type: 'amount', value: 6000 },
       ]);
       expect(getBearerRow('지영')).toHaveAccessibleName(/지영\s*6,000원/);
-      expect(screen.getByText(/체크를 풀면 N빵에서 빠져요/)).toBeInTheDocument();
+      expect(screen.getByText(/체크를 풀면 결제 분배 대상에서 빠져요/)).toBeInTheDocument();
     });
 
     // 시트의 금액과 결과 화면의 금액이 다르면 어느 쪽을 믿어야 할지 알 수 없다
@@ -138,7 +138,9 @@ describe('항목 상세 시트', () => {
       await openDetail(user, '30000');
 
       await user.click(getExtraChargeToggle('은정이네'));
-      await user.type(screen.getByLabelText('은정이네 추가 부담 금액'), '12000');
+      const amountField = screen.getByLabelText('은정이네 추가 부담 금액');
+      expect(amountField).toHaveAttribute('placeholder', '추가 부담');
+      await user.type(amountField, '12000');
 
       expect(firstItem()?.extraCharges).toEqual([
         { participantId: participantNamed('은정이네').id, type: 'amount', value: 12000 },

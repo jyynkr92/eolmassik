@@ -24,6 +24,14 @@ const settlement: Settlement = {
 };
 
 describe('createSettlementShareUrl', () => {
+  it('localhost에서는 운영 도메인의 공유 링크를 만든다', () => {
+    const result = createSettlementShareUrl(settlement);
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+
+    expect(new URL(result.data).origin).toBe('https://eolmassik.vercel.app');
+  });
+
   it('현재 도메인의 /s fragment에만 정산 데이터를 넣는다', () => {
     const result = createSettlementShareUrl(settlement, 'https://eolmassik.vercel.app');
     expect(result.success).toBe(true);

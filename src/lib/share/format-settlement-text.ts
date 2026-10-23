@@ -4,7 +4,11 @@ import { formatWon } from '@/lib/format';
 import type { Settlement } from '@/types/settlement';
 
 /** 카톡 대화창에 그대로 붙여넣을 수 있는 정산 요약. 기획설계 6.1 */
-export const formatSettlementText = (settlement: Settlement, result: SettlementResult): string => {
+export const formatSettlementText = (
+  settlement: Settlement,
+  result: SettlementResult,
+  shareUrl?: string,
+): string => {
   const nameById = new Map(
     settlement.participants.map((participant) => [participant.id, participant.name]),
   );
@@ -52,6 +56,8 @@ export const formatSettlementText = (settlement: Settlement, result: SettlementR
   if (result.roundingExcess > 0) {
     lines.push(RESULT_TEXT.roundingExcess(result.roundingExcess));
   }
+
+  if (shareUrl) lines.push('', shareUrl);
 
   return lines.join('\n');
 };

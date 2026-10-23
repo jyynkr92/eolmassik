@@ -59,8 +59,11 @@ const ShareActions = ({ settlement, result }: Props) => {
 
   const handleTextCopy = async () => {
     const requestId = ++latestCopyRequest.current;
+    const shareUrl = getShareUrl();
+    if (!shareUrl) return;
+
     try {
-      await navigator.clipboard.writeText(formatSettlementText(settlement, result));
+      await navigator.clipboard.writeText(formatSettlementText(settlement, result, shareUrl));
       if (requestId === latestCopyRequest.current) showFeedback(RESULT_TEXT.copySuccess);
     } catch {
       if (requestId === latestCopyRequest.current) showFeedback(RESULT_TEXT.copyError, true);
