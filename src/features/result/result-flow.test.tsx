@@ -26,11 +26,13 @@ const settlement: Settlement = {
   options: { rounding: 'none', roundingAbsorber: 'payer', fullChargeSplit: 'even' },
 };
 
-const renderHome = () => {
+const renderHome = async () => {
   const router = createRouter({
     routeTree,
     history: createMemoryHistory({ initialEntries: ['/'] }),
   });
+  // 비동기 라우트가 준비된 뒤 렌더링해 CI 부하에 따른 초기 화면 대기 차이를 없앤다.
+  await router.load();
   return render(<RouterProvider router={router} />);
 };
 
@@ -41,7 +43,7 @@ describe('결과 보기 흐름', () => {
 
   it('제출 후 결과 제목으로, 수정 후 편집 제목으로 초점을 옮긴다', async () => {
     const user = userEvent.setup();
-    renderHome();
+    await renderHome();
 
     await user.click(await screen.findByRole('button', { name: '결과 보기' }));
     expect(screen.getByRole('heading', { level: 2, name: '정산 결과' })).toHaveFocus();
@@ -58,7 +60,7 @@ describe('결과 보기 흐름', () => {
       ...settlement,
       items: [{ ...item, payerId: '' }],
     });
-    renderHome();
+    await renderHome();
 
     expect(await screen.findByRole('button', { name: '결과 보기' })).toBeDisabled();
     expect(
@@ -68,7 +70,7 @@ describe('결과 보기 흐름', () => {
 
   it('입력 단계에서 확인 후 정산을 초기화한다', async () => {
     const user = userEvent.setup();
-    renderHome();
+    await renderHome();
 
     await user.click(await screen.findByRole('button', { name: '초기화' }));
     expect(screen.getByRole('dialog', { name: '새 정산을 시작할까요?' })).toHaveTextContent(
@@ -89,7 +91,7 @@ describe('결과 보기 흐름', () => {
 
   it('결과 단계에서 새로운 정산을 시작한다', async () => {
     const user = userEvent.setup();
-    renderHome();
+    await renderHome();
 
     await user.click(await screen.findByRole('button', { name: '결과 보기' }));
     await user.click(screen.getByRole('button', { name: '새로운 정산하기' }));
