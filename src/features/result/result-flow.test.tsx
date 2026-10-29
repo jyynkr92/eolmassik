@@ -31,6 +31,7 @@ const renderHome = async () => {
     routeTree,
     history: createMemoryHistory({ initialEntries: ['/'] }),
   });
+  // 비동기 라우트가 준비된 뒤 렌더링해 CI 부하에 따른 초기 화면 대기 차이를 없앤다.
   await router.load();
   return render(<RouterProvider router={router} />);
 };
